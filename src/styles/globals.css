@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --pastel-pink: #ffb3d9;
+    --pastel-purple: #d9b3ff;
+    --pastel-blue: #b3d9ff;
+    --pastel-mint: #b3ffcc;
+    --pastel-yellow: #fff9b3;
+    --pastel-peach: #ffd9b3;
+  }
+
+  body {
+    font-family: 'Quicksand', sans-serif;
+    background: linear-gradient(to bottom right, #fdf2f8, #faf5ff);
+    min-height: 100vh;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer utilities {
+  .cute-shadow {
+    box-shadow: 0 4px 15px rgba(255, 179, 217, 0.3);
+  }
+
+  .cute-shadow-hover {
+    box-shadow: 0 8px 25px rgba(255, 179, 217, 0.4);
+  }
+
+  .pastel-gradient {
+    background: linear-gradient(to right, #fce7f3, #e9d5ff, #c7d2fe);
+  }
+}
