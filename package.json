@@ -15,6 +15,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.6",
     "@tanstack/react-query-devtools": "^5.90.2",
+    "firebase": "^11.10.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.552.0",
     "nanoid": "^5.1.6",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@types/firebase": "^3.2.3",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",

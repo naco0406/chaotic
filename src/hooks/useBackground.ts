@@ -1,6 +1,8 @@
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { BackgroundConfig } from '../types/background';
-import { STORAGE_KEYS, getFromStorage, setToStorage } from '../utils/storage';
+import { db } from '../lib/firebase';
 
 const initialBackgroundConfig: BackgroundConfig = {
   images: [],
@@ -21,75 +23,80 @@ const normalizeConfig = (config?: BackgroundConfig): BackgroundConfig => ({
   uploadedImages: config?.uploadedImages ?? [],
 });
 
-const loadInitialState = (): BackgroundConfig => {
-  if (typeof window === 'undefined') {
+const backgroundDocRef = doc(db, 'backgroundConfigs', 'default');
+
+const fetchBackgroundConfig = async (): Promise<BackgroundConfig> => {
+  try {
+    const snapshot = await getDoc(backgroundDocRef);
+    if (snapshot.exists()) {
+      return normalizeConfig(snapshot.data() as BackgroundConfig);
+    }
+
+    await setDoc(backgroundDocRef, initialBackgroundConfig);
+    return initialBackgroundConfig;
+  } catch (error) {
+    console.error('Failed to load background config', error);
     return initialBackgroundConfig;
   }
-  return getFromStorage(
-    STORAGE_KEYS.BACKGROUND_CONFIG,
-    initialBackgroundConfig
-  );
 };
-
-let backgroundState = normalizeConfig(loadInitialState());
-const listeners = new Set<() => void>();
-
-const emit = () => {
-  listeners.forEach((listener) => listener());
-};
-
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-};
-
-const setBackgroundState = (next: BackgroundConfig, persist = true) => {
-  backgroundState = normalizeConfig(next);
-  if (persist && typeof window !== 'undefined') {
-    setToStorage(STORAGE_KEYS.BACKGROUND_CONFIG, backgroundState);
-  }
-  emit();
-};
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (
-      event.key === STORAGE_KEYS.BACKGROUND_CONFIG &&
-      event.newValue
-    ) {
-      try {
-        const parsed = JSON.parse(event.newValue) as BackgroundConfig;
-        setBackgroundState(parsed, false);
-      } catch {
-        // ignore malformed storage data
-      }
-    }
-  });
-}
 
 export const useBackground = () => {
-  const config = useSyncExternalStore(
-    subscribe,
-    () => backgroundState,
-    () => backgroundState
-  );
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ['background-config'],
+    queryFn: fetchBackgroundConfig,
+    placeholderData: initialBackgroundConfig,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const unsubscribe = onSnapshot(
+      backgroundDocRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          queryClient.setQueryData(
+            ['background-config'],
+            normalizeConfig(snapshot.data() as BackgroundConfig)
+          );
+        } else {
+          setDoc(backgroundDocRef, initialBackgroundConfig).catch((error) => {
+            console.error('Failed to initialize background config', error);
+          });
+        }
+      },
+      (error) => {
+        console.error('Background config subscription failed', error);
+      }
+    );
+
+    return unsubscribe;
+  }, [queryClient]);
 
   const updateConfig = useCallback(
-    (
+    async (
       value:
         | BackgroundConfig
         | ((prev: BackgroundConfig) => BackgroundConfig)
-    ): BackgroundConfig => {
-      const resolved =
-        typeof value === 'function' ? value(backgroundState) : value;
-      setBackgroundState(resolved);
-      return backgroundState;
+    ): Promise<BackgroundConfig> => {
+      const base =
+        queryClient.getQueryData<BackgroundConfig>(['background-config']) ??
+        initialBackgroundConfig;
+      const resolved = typeof value === 'function' ? value(base) : value;
+      const normalized = normalizeConfig(resolved);
+
+      await setDoc(backgroundDocRef, normalized);
+      queryClient.setQueryData(['background-config'], normalized);
+
+      return normalized;
     },
-    []
+    [queryClient]
   );
 
   return {
-    config,
+    config: query.data ?? initialBackgroundConfig,
+    isLoading: query.status === 'pending',
     updateConfig,
   };
 };

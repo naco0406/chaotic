@@ -29,7 +29,7 @@ interface ImageLibraryProps {
   gridSize: number;
   editorOptions: EditorOptions;
   onImageSelect: (imageUrl: string) => void;
-  onImageUpload: (imageUrl: string) => void;
+  onImageUpload: (file: File) => Promise<void>;
   onLayerSelect: (id: string) => void;
   onLayerDelete: (id: string) => void;
   onLayerDuplicate: (id: string) => void;
@@ -75,37 +75,39 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<SidebarTab>('library');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          onImageUpload(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const processFiles = async (files: File[]) => {
+    if (files.length === 0) return;
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      await Promise.all(files.map((file) => onImageUpload(file)));
+    } catch (error) {
+      console.error('Image upload failed', error);
+      setUploadError('이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const handleDrop = (e: DragEvent) => {
-    e.preventDefault();
-    const droppedFiles = Array.from(e.dataTransfer.files);
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const validFiles = Array.from(files).filter((file) =>
+      file.type.startsWith('image/')
+    );
+    await processFiles(validFiles);
+    e.target.value = '';
+  };
 
-    droppedFiles.forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          onImageUpload(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleDrop = async (e: DragEvent) => {
+    e.preventDefault();
+    const droppedFiles = Array.from(e.dataTransfer.files).filter((file) =>
+      file.type.startsWith('image/')
+    );
+    await processFiles(droppedFiles);
   };
 
   const handleDragOver = (e: DragEvent) => {
@@ -124,6 +126,16 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
         <p className="text-sm text-slate-600">
           클릭하거나 추억 사진을 드래그해서 올려주세요
         </p>
+        {isUploading && (
+          <p className="text-xs text-emerald-500 mt-2">
+            사진을 업로드하는 중이에요...
+          </p>
+        )}
+        {uploadError && (
+          <p className="text-xs text-rose-500 mt-2">
+            {uploadError}
+          </p>
+        )}
         <input
           ref={fileInputRef}
           type="file"

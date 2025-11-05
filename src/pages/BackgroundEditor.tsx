@@ -8,6 +8,7 @@ import {
   useState,
   type FC,
 } from 'react';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
 import { BackgroundCanvas } from '../components/background/BackgroundCanvas';
 import { EditControls } from '../components/background/EditControls';
@@ -15,6 +16,7 @@ import { ImageLibrary } from '../components/background/ImageLibrary';
 import { Button } from '../components/common/Button';
 import { useBackground } from '../hooks/useBackground';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import { storage } from '../lib/firebase';
 import type { BackgroundConfig, ImageElement } from '../types/background';
 
 const createImageElement = (
@@ -33,7 +35,7 @@ const createImageElement = (
 
 export const BackgroundEditor: FC = () => {
   const navigate = useNavigate();
-  const { config, updateConfig } = useBackground();
+  const { config, updateConfig, isLoading: isBackgroundLoading } = useBackground();
   const {
     state: draftConfig,
     setState: setDraftConfig,
@@ -46,21 +48,39 @@ export const BackgroundEditor: FC = () => {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isPreview, setIsPreview] = useState(false);
   const [savedIndicator, setSavedIndicator] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editorOptions, setEditorOptions] = useState({
     snapToGrid: true,
     lockAspectRatio: true,
   });
 
+  useEffect(() => {
+    if (isBackgroundLoading) return;
+    reset(config);
+    setSelectedImageId(null);
+  }, [config, isBackgroundLoading, reset]);
+
   const hasUnsavedChanges = useMemo(() => {
     return JSON.stringify(draftConfig) !== JSON.stringify(config);
   }, [draftConfig, config]);
 
-  const handleImageUpload = (imageUrl: string) => {
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const uniqueId = nanoid();
+    const extension = file.name.split('.').pop();
+    const cleanedExt = extension?.replace(/[^a-zA-Z0-9]/g, '') ?? '';
+    const safeExt = cleanedExt ? `.${cleanedExt}` : '';
+    const storageRef = ref(
+      storage,
+      `background-images/${uniqueId}-${Date.now()}${safeExt}`
+    );
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
     setDraftConfig((prev) => ({
       ...prev,
-      uploadedImages: [...prev.uploadedImages, imageUrl],
+      uploadedImages: [...prev.uploadedImages, downloadUrl],
     }));
-  };
+  }, [setDraftConfig]);
 
   const handleImageSelect = (imageUrl: string) => {
     const newImage = createImageElement(imageUrl, draftConfig.images.length);
@@ -153,12 +173,20 @@ export const BackgroundEditor: FC = () => {
     setIsPreview(false);
   };
 
-  const handleSave = () => {
-    updateConfig(draftConfig);
-    reset(draftConfig);
-    setSavedIndicator(true);
-    setTimeout(() => setSavedIndicator(false), 1500);
-  };
+  const handleSave = useCallback(async () => {
+    if (isSaving || !hasUnsavedChanges) return;
+    setIsSaving(true);
+    try {
+      await updateConfig(draftConfig);
+      reset(draftConfig);
+      setSavedIndicator(true);
+      setTimeout(() => setSavedIndicator(false), 1500);
+    } catch (error) {
+      console.error('Failed to save background config', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [draftConfig, hasUnsavedChanges, isSaving, reset, updateConfig]);
 
   const handleKeyboard = useCallback(
     (event: KeyboardEvent) => {
@@ -192,6 +220,21 @@ export const BackgroundEditor: FC = () => {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [handleKeyboard]);
 
+  if (isBackgroundLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-sky-50 to-rose-50">
+        <div className="bg-white/80 backdrop-blur rounded-3xl px-8 py-6 cute-shadow text-center space-y-2">
+          <p className="text-lg font-semibold text-emerald-600">
+            배경 데이터를 불러오는 중이에요
+          </p>
+          <p className="text-sm text-slate-500">
+            잠시만 기다려 주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -224,7 +267,9 @@ export const BackgroundEditor: FC = () => {
             onUndo={undo}
             onRedo={redo}
             onClear={handleClear}
-            onSave={handleSave}
+            onSave={() => {
+              void handleSave();
+            }}
             onTogglePreview={() => setIsPreview((prev) => !prev)}
             onReset={handleReset}
           />

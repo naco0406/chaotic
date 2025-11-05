@@ -11,7 +11,7 @@ import { useSiteSettings } from '../hooks/useSiteSettings';
 
 export const HomePage: FC = () => {
   const { config } = useBackground();
-  const { posts } = usePosts();
+  const { posts, isLoading: isPostsLoading } = usePosts();
   const { settings } = useSiteSettings();
 
   return (
@@ -67,7 +67,13 @@ export const HomePage: FC = () => {
         </section>
 
         <section className="max-w-6xl mx-auto">
-          <PostGrid posts={posts} />
+          {isPostsLoading ? (
+            <div className="rounded-[32px] bg-white/70 backdrop-blur p-10 text-center text-emerald-600 cute-shadow animate-pulse">
+              편지를 불러오는 중이에요...
+            </div>
+          ) : (
+            <PostGrid posts={posts} />
+          )}
         </section>
 
         <p className="text-center text-sm text-slate-500">
