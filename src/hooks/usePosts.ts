@@ -15,10 +15,11 @@ export const usePosts = () => {
   });
 
   const createPostMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string }) => {
+    mutationFn: async (data: { title: string; author: string; content: string }) => {
       const newPost: Post = {
         id: nanoid(),
         title: data.title,
+        author: data.author,
         content: data.content,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -40,11 +41,16 @@ export const usePosts = () => {
     }: {
       id: string;
       title: string;
+      author: string;
       content: string;
     }) => {
       const updatedPosts = posts.map((post) =>
         post.id === id
-          ? { ...post, ...data, updatedAt: new Date().toISOString() }
+          ? {
+              ...post,
+              ...data,
+              updatedAt: new Date().toISOString(),
+            }
           : post
       );
       setPosts(updatedPosts);
@@ -66,7 +72,10 @@ export const usePosts = () => {
   });
 
   return {
-    posts: postsQuery.data || [],
+    posts: (postsQuery.data || []).map((post) => ({
+      ...post,
+      author: post.author || '이름 없는 친구',
+    })),
     isLoading: postsQuery.isLoading,
     createPost: createPostMutation.mutate,
     updatePost: updatePostMutation.mutate,
@@ -83,10 +92,9 @@ export const useDraft = () => {
     null
   );
 
-  const saveDraft = (title: string, content: string) => {
+  const saveDraft = (payload: { title: string; author: string; content: string }) => {
     setDraft({
-      title,
-      content,
+      ...payload,
       savedAt: new Date().toISOString(),
     });
   };

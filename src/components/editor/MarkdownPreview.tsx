@@ -33,7 +33,7 @@ const CodeBlock = ({ inline, className, children, style: _style, ...props }: Cod
     </SyntaxHighlighter>
   ) : (
       <code
-        className="bg-purple-100 px-1 py-0.5 rounded text-purple-700"
+        className="bg-emerald-100 px-1 py-0.5 rounded text-emerald-700"
         {...props}
       >
         {children}
@@ -48,7 +48,7 @@ const components: Components = {
 export const MarkdownPreview: FC<MarkdownPreviewProps> = ({ content }) => {
   return (
     <div className="w-full h-full p-4 rounded-2xl bg-white cute-shadow overflow-auto">
-      <div className="prose prose-purple max-w-none">
+      <div className="markdown-body">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={components}

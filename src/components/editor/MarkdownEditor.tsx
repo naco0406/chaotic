@@ -54,7 +54,7 @@ export const MarkdownEditor = forwardRef<
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full h-full p-4 rounded-2xl border-2 border-purple-200 focus:border-purple-400 focus:outline-none resize-none font-mono"
+      className="w-full h-full p-4 rounded-2xl border-2 border-emerald-200 bg-white/80 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 focus:outline-none resize-none font-mono text-slate-800"
     />
   );
 });

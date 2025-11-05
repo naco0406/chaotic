@@ -29,12 +29,12 @@ export const Modal: FC<ModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
@@ -42,11 +42,13 @@ export const Modal: FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl cute-shadow-hover p-6 z-50 w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] overflow-hidden flex flex-col`}
+            className={`relative bg-white rounded-3xl cute-shadow-hover p-6 w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] overflow-hidden flex flex-col`}
           >
             <div className="flex items-center justify-between mb-4">
               {title && (
-                <h2 className="text-2xl font-bold text-purple-800">{title}</h2>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-sky-500 bg-clip-text text-transparent">
+                  {title}
+                </h2>
               )}
               <Button
                 variant="ghost"
@@ -58,7 +60,7 @@ export const Modal: FC<ModalProps> = ({
             </div>
             <div className="overflow-y-auto flex-1">{children}</div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

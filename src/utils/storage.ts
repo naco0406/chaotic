@@ -2,6 +2,7 @@ export const STORAGE_KEYS = {
   BACKGROUND_CONFIG: 'background-config',
   POSTS: 'posts',
   DRAFT: 'draft',
+  SITE_SETTINGS: 'site-settings',
 } as const;
 
 export const getFromStorage = <T>(key: string, defaultValue: T): T => {

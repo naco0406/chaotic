@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import type { FC, MouseEvent } from 'react';
 import type {
   BackgroundConfig,
@@ -12,19 +13,21 @@ interface BackgroundCanvasProps {
   onSelectImage?: (id: string | null) => void;
   onUpdateImage?: (id: string, updates: Partial<ImageElementType>) => void;
   onRemoveImage?: (id: string) => void;
+  onDuplicateImage?: (id: string) => void;
   snapToGrid?: boolean;
   gridSize?: number;
   lockAspectRatio?: boolean;
   showGuides?: boolean;
 }
 
-export const BackgroundCanvas: FC<BackgroundCanvasProps> = ({
+const BackgroundCanvasComponent: FC<BackgroundCanvasProps> = ({
   config,
   editable = false,
   selectedId,
   onSelectImage,
   onUpdateImage,
   onRemoveImage,
+  onDuplicateImage,
   snapToGrid = false,
   gridSize,
   lockAspectRatio = true,
@@ -39,19 +42,27 @@ export const BackgroundCanvas: FC<BackgroundCanvasProps> = ({
   const shouldShowGrid = config.showGrid || showGuides;
   const resolvedGridSize = gridSize ?? config.gridSize ?? 20;
 
+  const orderedImages = useMemo(
+    () => [...config.images].sort((a, b) => a.zIndex - b.zIndex),
+    [config.images]
+  );
+
   return (
     <div
-      className="relative w-full h-full rounded-3xl border border-purple-100 bg-gradient-to-br from-white/80 via-white to-white/90 overflow-hidden"
-      style={{ background: config.backgroundColor }}
+      className="relative w-full h-full rounded-3xl border border-emerald-100 bg-gradient-to-br from-white/85 via-white to-slate-50 overflow-hidden select-none"
+      style={{
+        background: config.backgroundColor,
+        pointerEvents: editable ? 'auto' : 'none',
+      }}
       onClick={handleCanvasClick}
     >
       {shouldShowGrid && (
         <div
           className="absolute inset-0 pointer-events-none opacity-50"
-          style={{
-            backgroundImage: `
-              linear-gradient(0deg, rgba(216, 180, 254, 0.3) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(216, 180, 254, 0.3) 1px, transparent 1px)
+            style={{
+              backgroundImage: `
+              linear-gradient(0deg, rgba(125, 211, 252, 0.35) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(167, 243, 208, 0.35) 1px, transparent 1px)
             `,
             backgroundSize: `${resolvedGridSize}px ${resolvedGridSize}px`,
           }}
@@ -59,31 +70,29 @@ export const BackgroundCanvas: FC<BackgroundCanvasProps> = ({
       )}
 
       <div className="absolute inset-0 overflow-hidden">
-        {config.images
-          .slice()
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map((image) => (
-            <ImageElement
-              key={image.id}
-              image={image}
-              isSelected={selectedId === image.id}
-              editable={editable}
-              snapToGrid={snapToGrid}
-              gridSize={resolvedGridSize}
-              lockAspectRatio={lockAspectRatio}
-              onSelect={() => onSelectImage?.(image.id)}
-              onUpdate={(updates) => onUpdateImage?.(image.id, updates)}
-              onRemove={() => onRemoveImage?.(image.id)}
-            />
-          ))}
+        {orderedImages.map((image) => (
+          <ImageElement
+            key={image.id}
+            image={image}
+            isSelected={selectedId === image.id}
+            editable={editable}
+            snapToGrid={snapToGrid}
+            gridSize={resolvedGridSize}
+            lockAspectRatio={lockAspectRatio}
+            onSelect={() => onSelectImage?.(image.id)}
+            onUpdate={(updates) => onUpdateImage?.(image.id, updates)}
+            onRemove={() => onRemoveImage?.(image.id)}
+            onDuplicate={() => onDuplicateImage?.(image.id)}
+          />
+        ))}
 
         {config.images.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-purple-400 pointer-events-none">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-500 pointer-events-none">
             <p className="text-lg font-semibold mb-2">
-              라이브러리에서 이미지를 추가해보세요 ✨
+              편지를 환하게 만들 장식을 올려보세요 ✨
             </p>
-            <p className="text-sm text-purple-300">
-              더블클릭으로 선택, 드래그로 이동할 수 있어요
+            <p className="text-sm text-emerald-400">
+              앨범에서 이미지를 고르고 드래그로 위치를 맞출 수 있어요
             </p>
           </div>
         )}
@@ -91,3 +100,5 @@ export const BackgroundCanvas: FC<BackgroundCanvasProps> = ({
     </div>
   );
 };
+
+export const BackgroundCanvas = memo(BackgroundCanvasComponent);

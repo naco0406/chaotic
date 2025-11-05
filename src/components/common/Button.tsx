@@ -18,17 +18,18 @@ export const Button: FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
+  type = 'button',
   ...props
 }) => {
   const baseClasses =
-    'font-quicksand font-semibold rounded-full transition-all duration-200 flex items-center gap-2 justify-center';
+    'font-quicksand font-semibold rounded-full transition-all duration-200 flex items-center gap-2 justify-center shadow-lg';
 
   const variantClasses = {
     primary:
-      'bg-gradient-to-r from-pink-300 to-purple-300 text-white hover:from-pink-400 hover:to-purple-400 cute-shadow hover:cute-shadow-hover',
+      'bg-gradient-to-r from-lime-300 via-emerald-300 to-sky-300 text-slate-900 hover:from-lime-200 hover:via-cyan-200 hover:to-sky-200 cute-shadow hover:cute-shadow-hover',
     secondary:
-      'bg-white text-purple-600 border-2 border-purple-200 hover:border-purple-300 hover:bg-purple-50',
-    ghost: 'bg-transparent text-purple-600 hover:bg-purple-50',
+      'bg-white text-slate-800 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50',
+    ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',
   };
 
   const sizeClasses = {
@@ -43,6 +44,7 @@ export const Button: FC<ButtonProps> = ({
     <motion.button
       whileHover={!disabled ? { scale: 1.05 } : {}}
       whileTap={!disabled ? { scale: 0.95 } : {}}
+      type={type}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabledClasses} ${className}`}
       disabled={disabled}
       {...props}

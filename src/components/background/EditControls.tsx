@@ -36,7 +36,7 @@ export const EditControls: FC<EditControlsProps> = ({
   onReset,
 }) => {
   return (
-    <div className="bg-white rounded-full px-4 py-2 cute-shadow flex items-center gap-2">
+    <div className="bg-gradient-to-r from-emerald-50 via-sky-50 to-rose-50 rounded-full px-4 py-2 cute-shadow flex items-center gap-2 border border-white/60">
       <Button
         size="sm"
         variant="ghost"
@@ -53,7 +53,7 @@ export const EditControls: FC<EditControlsProps> = ({
         onClick={onRedo}
         title="다시실행"
       />
-      <div className="w-px h-6 bg-gray-300 mx-1" />
+      <div className="w-px h-6 bg-slate-200 mx-1" />
       <Button
         size="sm"
         variant="ghost"
@@ -61,7 +61,7 @@ export const EditControls: FC<EditControlsProps> = ({
         onClick={onTogglePreview}
         title={isPreview ? '편집 모드' : '미리보기'}
       />
-      <div className="w-px h-6 bg-gray-300 mx-1" />
+      <div className="w-px h-6 bg-slate-200 mx-1" />
       <Button
         size="sm"
         variant="ghost"

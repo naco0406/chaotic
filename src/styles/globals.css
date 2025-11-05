@@ -6,17 +6,21 @@
 
 @layer base {
   :root {
-    --pastel-pink: #ffb3d9;
-    --pastel-purple: #d9b3ff;
-    --pastel-blue: #b3d9ff;
-    --pastel-mint: #b3ffcc;
-    --pastel-yellow: #fff9b3;
-    --pastel-peach: #ffd9b3;
+    --candy-pink: #ff9ec7;
+    --candy-lavender: #c9a7ff;
+    --candy-mint: #7becc7;
+    --candy-sky: #7ec9ff;
+    --candy-sun: #ffe38e;
+    --candy-coral: #ffb38e;
   }
 
   body {
     font-family: 'Quicksand', sans-serif;
-    background: linear-gradient(to bottom right, #fdf2f8, #faf5ff);
+    background: radial-gradient(circle at top left, #fff8e1, transparent 45%),
+      radial-gradient(circle at top right, #e0f2fe, transparent 40%),
+      radial-gradient(circle at bottom left, #fce7f3, transparent 35%),
+      radial-gradient(circle at bottom right, #d1fae5, transparent 35%),
+      linear-gradient(135deg, #fffef5, #f1f5ff, #fef2ff);
     min-height: 100vh;
   }
 
@@ -27,14 +31,57 @@
 
 @layer utilities {
   .cute-shadow {
-    box-shadow: 0 4px 15px rgba(255, 179, 217, 0.3);
+    box-shadow: 0 10px 30px rgba(125, 211, 252, 0.35);
   }
 
   .cute-shadow-hover {
-    box-shadow: 0 8px 25px rgba(255, 179, 217, 0.4);
+    box-shadow: 0 20px 45px rgba(251, 191, 36, 0.35);
   }
 
   .pastel-gradient {
-    background: linear-gradient(to right, #fce7f3, #e9d5ff, #c7d2fe);
+    background: linear-gradient(
+      120deg,
+      var(--candy-pink),
+      var(--candy-sky),
+      var(--candy-mint)
+    );
+  }
+}
+
+@layer components {
+  .markdown-body {
+    @apply space-y-4 text-slate-700 leading-relaxed;
+  }
+
+  .markdown-body h1 {
+    @apply text-3xl font-bold text-sky-600 mt-8 mb-4;
+  }
+
+  .markdown-body h2 {
+    @apply text-2xl font-semibold text-emerald-600 mt-6 mb-3;
+  }
+
+  .markdown-body h3 {
+    @apply text-xl font-semibold text-amber-600 mt-4 mb-2;
+  }
+
+  .markdown-body a {
+    @apply text-sky-600 underline underline-offset-4 decoration-wavy;
+  }
+
+  .markdown-body ul {
+    @apply list-disc list-inside space-y-2;
+  }
+
+  .markdown-body ol {
+    @apply list-decimal list-inside space-y-2;
+  }
+
+  .markdown-body code {
+    @apply bg-slate-100 rounded px-2 py-0.5 font-mono text-sm;
+  }
+
+  .markdown-body blockquote {
+    @apply border-l-4 border-emerald-200 pl-4 italic text-slate-600 bg-emerald-50/50 rounded-2xl py-3 px-4;
   }
 }

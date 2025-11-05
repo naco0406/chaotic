@@ -6,6 +6,7 @@ import { Layout } from './components/common/Layout';
 import { HomePage } from './pages/HomePage';
 import { BackgroundEditor } from './pages/BackgroundEditor';
 import { WritePage } from './pages/WritePage';
+import { AdminPage } from './pages/AdminPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +26,7 @@ const App: FC = () => {
             <Route index element={<HomePage />} />
             <Route path="background-editor" element={<BackgroundEditor />} />
             <Route path="write" element={<WritePage />} />
+            <Route path="admin" element={<AdminPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

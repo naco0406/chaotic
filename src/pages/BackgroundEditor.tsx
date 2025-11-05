@@ -196,7 +196,7 @@ export const BackgroundEditor: FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex flex-col lg:flex-row gap-6 p-4 md:p-8"
+      className="min-h-screen bg-gradient-to-br from-emerald-50 via-sky-50 to-rose-50 flex flex-col lg:flex-row gap-6 p-4 md:p-8"
     >
       <div className="flex-1 relative">
         <div className="absolute top-4 left-4 z-20 flex gap-2">
@@ -238,6 +238,7 @@ export const BackgroundEditor: FC = () => {
             onSelectImage={setSelectedImageId}
             onUpdateImage={handleImageUpdate}
             onRemoveImage={handleImageDelete}
+            onDuplicateImage={handleDuplicate}
             snapToGrid={editorOptions.snapToGrid}
             gridSize={draftConfig.gridSize}
             lockAspectRatio={editorOptions.lockAspectRatio}

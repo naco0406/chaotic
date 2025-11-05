@@ -1,17 +1,23 @@
 import { useEffect, useRef } from 'react';
 
-type SaveHandler = (title: string, content: string) => void;
+interface DraftPayload {
+  title: string;
+  author: string;
+  content: string;
+}
+
+type SaveHandler = (payload: DraftPayload) => void;
 
 export const useDraftAutosave = (
-  title: string,
-  content: string,
+  payload: DraftPayload,
   onSave: SaveHandler,
   delay = 1000
 ) => {
   const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!title && !content) {
+    const { title, author, content } = payload;
+    if (!title && !content && !author) {
       return;
     }
 
@@ -20,7 +26,7 @@ export const useDraftAutosave = (
     }
 
     timeoutRef.current = window.setTimeout(() => {
-      onSave(title, content);
+      onSave(payload);
     }, delay);
 
     return () => {
@@ -28,5 +34,5 @@ export const useDraftAutosave = (
         window.clearTimeout(timeoutRef.current);
       }
     };
-  }, [title, content, delay, onSave]);
+  }, [payload.author, payload.content, payload.title, delay, onSave]);
 };

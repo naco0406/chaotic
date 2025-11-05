@@ -1,14 +1,14 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import type { FC } from 'react';
 import type { Post } from '../../types/post';
-import { PostCard } from './PostCard';
+import { PostViewer } from './PostViewer';
 
 interface PostGridProps {
   posts: Post[];
-  onPostClick: (post: Post) => void;
 }
 
-export const PostGrid: FC<PostGridProps> = ({ posts, onPostClick }) => {
+const PostGridComponent: FC<PostGridProps> = ({ posts }) => {
   if (posts.length === 0) {
     return (
       <motion.div
@@ -16,26 +16,31 @@ export const PostGrid: FC<PostGridProps> = ({ posts, onPostClick }) => {
         animate={{ opacity: 1 }}
         className="text-center py-16"
       >
-        <p className="text-xl text-purple-600 font-semibold">
-          아직 작성된 글이 없어요 💭
+        <p className="text-xl text-emerald-600 font-semibold">
+          아직 편지가 도착하지 않았어요 💌
         </p>
-        <p className="text-gray-500 mt-2">첫 번째 글을 작성해보세요!</p>
+        <p className="text-gray-500 mt-2">
+          마음속 이야기를 가장 먼저 전해보세요.
+        </p>
       </motion.div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="columns-1 md:columns-2 gap-8 space-y-8">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
+          transition={{ delay: index * 0.05 }}
+          className="break-inside-avoid rounded-[28px] bg-white/70 backdrop-blur-xl shadow-[0_20px_60px_rgba(15,23,42,0.12)] border border-white/30 p-6"
         >
-          <PostCard post={post} onClick={onPostClick} />
+          <PostViewer post={post} />
         </motion.div>
       ))}
     </div>
   );
 };
+
+export const PostGrid = memo(PostGridComponent);

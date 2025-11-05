@@ -1,7 +1,7 @@
+import { memo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Copy, Maximize2, RotateCw, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FC, MouseEvent } from 'react';
+import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { ImageElement as ImageElementType } from '../../types/background';
 
 interface ImageElementProps {
@@ -17,7 +17,7 @@ interface ImageElementProps {
   onDuplicate?: () => void;
 }
 
-export const ImageElement: FC<ImageElementProps> = ({
+const ImageElementComponent: FC<ImageElementProps> = ({
   image,
   isSelected,
   editable,
@@ -29,9 +29,8 @@ export const ImageElement: FC<ImageElementProps> = ({
   onRemove,
   onDuplicate,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [isRotating, setIsRotating] = useState(false);
+  const rotationValue =
+    typeof image.rotation === 'number' ? image.rotation : 0;
   const elementRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef({
     pointerX: 0,
@@ -46,145 +45,178 @@ export const ImageElement: FC<ImageElementProps> = ({
     pointerX: 0,
     pointerY: 0,
   });
-  const rotateStartRef = useRef({ angle: 0, x: 0, y: 0 });
+  const rotateStartRef = useRef({
+    baseRotation: 0,
+    startPointerAngle: 0,
+    centerX: 0,
+    centerY: 0,
+  });
+  const previousUserSelect = useRef<string>('');
+  const pointerIdRef = useRef<number | null>(null);
+  const actionRef = useRef<'idle' | 'drag' | 'resize' | 'rotate'>('idle');
 
   const clampPercentage = (value: number) => Math.max(0, Math.min(100, value));
   const snapValue = (value: number) =>
     snapToGrid ? Math.round(value / gridSize) * gridSize : value;
 
-  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    if (!editable) return;
-    e.stopPropagation();
-    onSelect();
+  const lockBodyInteraction = (cursor: string) => {
+    previousUserSelect.current = document.body.style.userSelect;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = cursor;
+    window.getSelection()?.removeAllRanges();
+  };
 
+  const releaseBodyInteraction = () => {
+    document.body.style.userSelect = previousUserSelect.current;
+    document.body.style.cursor = '';
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+    if (actionRef.current === 'drag') {
+      const dragStart = dragStartRef.current;
+      if (!dragStart.canvasRect) return;
+      const dx = event.clientX - dragStart.pointerX;
+      const dy = event.clientY - dragStart.pointerY;
+      const nextXPx = snapValue(dragStart.initialXPx + dx);
+      const nextYPx = snapValue(dragStart.initialYPx + dy);
+      const nextXPercent = clampPercentage(
+        (nextXPx / dragStart.canvasRect.width) * 100
+      );
+      const nextYPercent = clampPercentage(
+        (nextYPx / dragStart.canvasRect.height) * 100
+      );
+      onUpdate({
+        x: nextXPercent,
+        y: nextYPercent,
+      });
+    } else if (actionRef.current === 'resize') {
+      const dx = event.clientX - resizeStartRef.current.pointerX;
+      const dy = event.clientY - resizeStartRef.current.pointerY;
+      const aspectRatio =
+        resizeStartRef.current.width / resizeStartRef.current.height || 1;
+
+      let newWidth = resizeStartRef.current.width + dx;
+      let newHeight = lockAspectRatio
+        ? newWidth / aspectRatio
+        : resizeStartRef.current.height + dy;
+
+      newWidth = snapValue(Math.max(60, newWidth));
+      newHeight = snapValue(Math.max(60, newHeight));
+
+      onUpdate({
+        width: newWidth,
+        height: newHeight,
+      });
+    } else if (actionRef.current === 'rotate') {
+      const { centerX, centerY, startPointerAngle, baseRotation } =
+        rotateStartRef.current;
+      const currentAngle = Math.atan2(
+        event.clientY - centerY,
+        event.clientX - centerX
+      );
+      const deltaDeg = ((currentAngle - startPointerAngle) * 180) / Math.PI;
+      onUpdate({ rotation: baseRotation + deltaDeg });
+    }
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+    pointerIdRef.current = null;
+    actionRef.current = 'idle';
+    releaseBodyInteraction();
+    if (elementRef.current?.hasPointerCapture(event.pointerId)) {
+      elementRef.current.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!editable) return;
+    event.preventDefault();
+    event.stopPropagation();
     const canvasRect = elementRef.current?.parentElement?.getBoundingClientRect();
     if (!canvasRect) return;
-
+    pointerIdRef.current = event.pointerId;
+    actionRef.current = 'drag';
+    onSelect();
+    lockBodyInteraction('grabbing');
+    elementRef.current?.setPointerCapture(event.pointerId);
     dragStartRef.current = {
-      pointerX: e.clientX,
-      pointerY: e.clientY,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
       initialXPx: (image.x / 100) * canvasRect.width,
       initialYPx: (image.y / 100) * canvasRect.height,
       canvasRect,
     };
-    setIsDragging(true);
   };
 
-  const handleMouseMove = useCallback(
-    (e: Event) => {
-      const mouseEvent = e as globalThis.MouseEvent;
-      if (isDragging) {
-        const dragStart = dragStartRef.current;
-        if (!dragStart.canvasRect) return;
-        const dx = mouseEvent.clientX - dragStart.pointerX;
-        const dy = mouseEvent.clientY - dragStart.pointerY;
-
-        const nextXPx = snapValue(dragStart.initialXPx + dx);
-        const nextYPx = snapValue(dragStart.initialYPx + dy);
-
-        const nextXPercent = clampPercentage(
-          (nextXPx / dragStart.canvasRect.width) * 100
-        );
-        const nextYPercent = clampPercentage(
-          (nextYPx / dragStart.canvasRect.height) * 100
-        );
-
-        onUpdate({
-          x: nextXPercent,
-          y: nextYPercent,
-        });
-      } else if (isResizing) {
-        const dx = mouseEvent.clientX - resizeStartRef.current.pointerX;
-        const dy = mouseEvent.clientY - resizeStartRef.current.pointerY;
-        const aspectRatio =
-          resizeStartRef.current.width / resizeStartRef.current.height || 1;
-
-        let newWidth = resizeStartRef.current.width + dx;
-        let newHeight = lockAspectRatio
-          ? newWidth / aspectRatio
-          : resizeStartRef.current.height + dy;
-
-        newWidth = snapValue(Math.max(60, newWidth));
-        newHeight = snapValue(Math.max(60, newHeight));
-
-        onUpdate({
-          width: newWidth,
-          height: newHeight,
-        });
-      } else if (isRotating) {
-        const rect = elementRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        const angle =
-          (Math.atan2(mouseEvent.clientY - centerY, mouseEvent.clientX - centerX) * 180) /
-            Math.PI +
-          90;
-
-        onUpdate({ rotation: angle });
-      }
-    },
-    [isDragging, isResizing, isRotating, onUpdate]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-    setIsRotating(false);
-  }, []);
-
-  useEffect(() => {
-    if (isDragging || isResizing || isRotating) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, isResizing, isRotating, handleMouseMove, handleMouseUp]);
-
-  const handleResizeStart = (e: MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
+  const handleResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!editable) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pointerIdRef.current = event.pointerId;
+    actionRef.current = 'resize';
+    onSelect();
+    lockBodyInteraction('nwse-resize');
+    elementRef.current?.setPointerCapture(event.pointerId);
     resizeStartRef.current = {
       width: image.width,
       height: image.height,
-      pointerX: e.clientX,
-      pointerY: e.clientY,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
     };
-    setIsResizing(true);
   };
 
-  const handleRotateStart = (e: MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
+  const handleRotateStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!editable) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = elementRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    pointerIdRef.current = event.pointerId;
+    actionRef.current = 'rotate';
+    onSelect();
+    elementRef.current?.setPointerCapture(event.pointerId);
     rotateStartRef.current = {
-      angle: image.rotation,
-      x: e.clientX,
-      y: e.clientY,
+      baseRotation: rotationValue,
+      startPointerAngle: Math.atan2(event.clientY - centerY, event.clientX - centerX),
+      centerX,
+      centerY,
     };
-    setIsRotating(true);
+    lockBodyInteraction('grabbing');
   };
 
   return (
     <motion.div
       ref={elementRef}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       style={{
         position: 'absolute',
         left: `${image.x}%`,
         top: `${image.y}%`,
         width: `${image.width}px`,
         height: `${image.height}px`,
-        transform: `translate(-50%, -50%) rotate(${image.rotation}deg)`,
+        transform: `translate(-50%, -50%) rotate(${rotationValue}deg)`,
         zIndex: image.zIndex,
         cursor: editable ? 'move' : 'default',
+        userSelect: 'none',
       }}
-      className={`${isSelected && editable ? 'ring-2 ring-purple-400 ring-offset-2' : ''}`}
-      onMouseDown={handleMouseDown}
+      className={`${
+        isSelected && editable ? 'ring-2 ring-sky-300 ring-offset-2 ring-offset-lime-50' : ''
+      }`}
+      onPointerDown={beginDrag}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
     >
       <img
         src={image.imageUrl}
@@ -197,7 +229,8 @@ export const ImageElement: FC<ImageElementProps> = ({
         <>
           <div className="absolute -top-5 right-0 flex gap-1">
             <button
-              className="bg-white text-purple-500 rounded-full p-1 shadow hover:bg-purple-50"
+              className="bg-white text-sky-500 rounded-full p-1 shadow hover:bg-sky-50"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onDuplicate?.();
@@ -206,7 +239,8 @@ export const ImageElement: FC<ImageElementProps> = ({
               <Copy size={14} />
             </button>
             <button
-              className="bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600"
+              className="bg-rose-500 text-white rounded-full p-1 shadow hover:bg-rose-600"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove?.();
@@ -217,15 +251,15 @@ export const ImageElement: FC<ImageElementProps> = ({
           </div>
 
           <div
-            className="absolute -bottom-3 -right-3 bg-blue-500 text-white rounded-full p-1 cursor-nwse-resize"
-            onMouseDown={handleResizeStart}
+            className="absolute -bottom-3 -right-3 bg-cyan-500 text-white rounded-full p-1 cursor-nwse-resize"
+            onPointerDown={handleResizeStart}
           >
             <Maximize2 size={16} />
           </div>
 
           <div
-            className="absolute -top-3 -left-3 bg-green-500 text-white rounded-full p-1 cursor-pointer"
-            onMouseDown={handleRotateStart}
+            className="absolute -top-3 -left-3 bg-amber-400 text-white rounded-full p-1 cursor-grab"
+            onPointerDown={handleRotateStart}
           >
             <RotateCw size={16} />
           </div>
@@ -234,3 +268,5 @@ export const ImageElement: FC<ImageElementProps> = ({
     </motion.div>
   );
 };
+
+export const ImageElement = memo(ImageElementComponent);
