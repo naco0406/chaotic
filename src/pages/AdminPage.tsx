@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Save } from 'lucide-react';
-import type { FC } from 'react';
+import { useEffect, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '../components/common/Button';
 import { useSiteSettings } from '../hooks/useSiteSettings';
@@ -17,13 +17,18 @@ export const AdminPage: FC = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { isDirty },
   } = useForm<AdminForm>({
     defaultValues: settings,
   });
 
+  useEffect(() => {
+    reset(settings);
+  }, [reset, settings]);
+
   const onSubmit = (data: AdminForm) => {
-    updateSettings(data);
+    void updateSettings(data);
   };
 
   return (

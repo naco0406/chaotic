@@ -49,20 +49,36 @@ export const WritePage: FC = () => {
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [anonName, setAnonName] = useState('익명의 고양이');
-  const manualAuthorRef = useRef(draft?.author || '');
+  const manualAuthorRef = useRef('');
+  const draftAppliedRef = useRef(false);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
-      author: draft?.author || '',
-      content: draft?.content || '',
+      author: '',
+      content: '',
     },
   });
+
+  useEffect(() => {
+    if (draftAppliedRef.current) return;
+
+    if (draft) {
+      reset({
+        author: draft.author || '',
+        content: draft.content || '',
+      });
+      manualAuthorRef.current = draft.author || '';
+    }
+
+    draftAppliedRef.current = true;
+  }, [draft, reset]);
 
   const author = watch('author');
   const content = watch('content');
@@ -117,7 +133,7 @@ export const WritePage: FC = () => {
       author: data.author || '이름 없는 친구',
       content: data.content,
     });
-    clearDraft();
+    void clearDraft();
     navigate('/');
   };
 

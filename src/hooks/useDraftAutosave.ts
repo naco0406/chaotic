@@ -6,7 +6,7 @@ interface DraftPayload {
   content: string;
 }
 
-type SaveHandler = (payload: DraftPayload) => void;
+type SaveHandler = (payload: DraftPayload) => Promise<void> | void;
 
 export const useDraftAutosave = (
   payload: DraftPayload,
@@ -14,9 +14,9 @@ export const useDraftAutosave = (
   delay = 1000
 ) => {
   const timeoutRef = useRef<number | null>(null);
+  const { title, author, content } = payload;
 
   useEffect(() => {
-    const { title, author, content } = payload;
     if (!title && !content && !author) {
       return;
     }
@@ -25,8 +25,9 @@ export const useDraftAutosave = (
       window.clearTimeout(timeoutRef.current);
     }
 
+    const nextPayload: DraftPayload = { title, author, content };
     timeoutRef.current = window.setTimeout(() => {
-      onSave(payload);
+      void onSave(nextPayload);
     }, delay);
 
     return () => {
@@ -34,5 +35,5 @@ export const useDraftAutosave = (
         window.clearTimeout(timeoutRef.current);
       }
     };
-  }, [payload.author, payload.content, payload.title, delay, onSave]);
+  }, [author, content, title, delay, onSave]);
 };
