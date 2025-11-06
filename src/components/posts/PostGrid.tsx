@@ -24,7 +24,7 @@ const PostGridComponent: FC<PostGridProps> = ({ posts }) => {
   }
 
   return (
-    <div className="columns-1 md:columns-2 gap-8 space-y-8">
+    <div className="columns-1 sm:columns-2 gap-8 space-y-8">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}

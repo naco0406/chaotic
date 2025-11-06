@@ -259,11 +259,11 @@ export const WritePage: FC = () => {
                     {errors.author.message}
                   </p>
                 )}
-                {isAnonymous && (
+                {/* {isAnonymous && (
                   <p className="text-xs text-emerald-500">
                     현재 이름: {anonName}
                   </p>
-                )}
+                )} */}
               </div>
 
               <MarkdownToolbar

@@ -72,23 +72,23 @@ export const HomePage: FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 min-h-screen p-6 md:p-12 space-y-12"
+        className="relative z-10 min-h-screen p-6 sm:p-12 space-y-12"
       >
         <section className="max-w-5xl mx-auto text-center space-y-2">
           <motion.h1
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 120 }}
-            className="text-2xl md:text-4xl font-black text-slate-900"
+            className="text-2xl text-4xl font-black text-slate-900"
           >
             Goodbye, Felix
           </motion.h1>
-          <p className="text-md md:text-lg text-slate-600">
+          <p className="text-md text-lg text-slate-600">
             최 준 희 님께
           </p>
         </section>
 
-        <section className="max-w-6xl mx-auto">
+        <section className="max-w-4xl mx-auto">
           {isPostsLoading ? (
             <div className="rounded-[32px] bg-white/70 backdrop-blur p-10 text-center text-emerald-600 cute-shadow animate-pulse">
             글을 불러오는 중이에요...

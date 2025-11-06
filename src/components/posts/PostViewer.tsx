@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { FC, HTMLAttributes, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
@@ -17,6 +17,11 @@ interface CodeBlockProps extends HTMLAttributes<HTMLElement> {
   className?: string;
   children?: ReactNode;
   [key: string]: unknown;
+}
+
+interface MarkdownImageProps
+  extends Omit<HTMLAttributes<HTMLImageElement>, 'onError' | 'onLoad'> {
+  src?: string;
 }
 
 const syntaxTheme = oneDark as unknown as { [key: string]: React.CSSProperties };
@@ -41,6 +46,50 @@ const CodeBlock = ({ inline, className, children, style, ...props }: CodeBlockPr
       >
         {children}
       </code>
+  );
+};
+
+const MarkdownImage: FC<MarkdownImageProps> = ({ src, ...props }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  if (!src) {
+    return null;
+  }
+
+  return (
+    <figure className="my-0 space-y-2">
+      <div
+        className={`relative w-full overflow-hidden rounded-3xl border border-white/60 bg-slate-100 ${
+          isLoaded ? '' : 'animate-pulse'
+        } aspect-[4/3]`}
+      >
+        {!isLoaded && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+            이미지 준비중...
+          </div>
+        )}
+        <img
+          src={src}
+          // alt={alt ?? ''}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => {
+            setIsLoaded(true);
+            setIsError(true);
+          }}
+          className={`h-full w-full object-cover transition-opacity duration-300 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          loading="lazy"
+          {...props}
+        />
+      </div>
+      {isError && (
+        <figcaption className="text-center text-xs text-slate-400">
+          이미지를 불러오지 못했어요.
+        </figcaption>
+      )}
+    </figure>
   );
 };
 
@@ -90,6 +139,7 @@ const markdownComponents: Components = {
       {children}
     </a>
   ),
+  img: MarkdownImage as Components['img'],
 } satisfies Components;
 
 const PostViewerComponent: FC<PostViewerProps> = ({ post }) => {
