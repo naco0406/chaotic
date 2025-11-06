@@ -223,12 +223,6 @@ export const BackgroundEditor: FC = () => {
     setIsDirty(true);
   };
 
-  const handleReset = () => {
-    setDraftConfig(config);
-    setSelectedImageId(null);
-    setIsDirty(false);
-  };
-
   const handleSave = useCallback(async () => {
     if (isSaving || !hasUnsavedChanges) return;
     setIsSaving(true);
@@ -318,7 +312,6 @@ export const BackgroundEditor: FC = () => {
             onSave={() => {
               void handleSave();
             }}
-            onReset={handleReset}
           />
         </div>
 
