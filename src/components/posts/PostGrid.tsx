@@ -31,7 +31,7 @@ const PostGridComponent: FC<PostGridProps> = ({ posts }) => {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05 }}
-          className="break-inside-avoid rounded-[28px] bg-white/70 backdrop-blur-xl shadow-[0_20px_60px_rgba(15,23,42,0.12)] border border-white/30 p-6"
+          className="break-inside-avoid rounded-[28px] bg-white/30 backdrop-blur-xl shadow-[0_20px_60px_rgba(15,23,42,0.12)] border border-white/30 p-6"
         >
           <PostViewer post={post} />
         </motion.div>

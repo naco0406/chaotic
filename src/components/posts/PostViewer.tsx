@@ -66,7 +66,7 @@ const MarkdownImage: FC<MarkdownImageProps> = ({ src, ...props }) => {
       >
         {!isLoaded && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-            이미지 준비중...
+            
           </div>
         )}
         <img
