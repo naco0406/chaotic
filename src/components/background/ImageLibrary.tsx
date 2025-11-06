@@ -137,9 +137,9 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
     );
 
     return (
-      <>
+      <div className="flex h-full flex-col gap-4 min-h-0">
         <div
-          className="relative mb-4 overflow-hidden rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] cursor-pointer transition-colors hover:border-emerald-300"
+          className="relative overflow-hidden rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] cursor-pointer transition-colors hover:border-emerald-300 shrink-0"
           onClick={() => fileInputRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -172,7 +172,7 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 p-1">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 p-1">
           {uploadedImages.length === 0 ? (
             isUploading ? (
               renderUploadSkeletons()
@@ -209,17 +209,18 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
             </>
           )}
         </div>
-      </>
+      </div>
     );
   };
 
   const renderLayersTab = () => (
-    <div className="flex-1 overflow-y-auto space-y-3 p-1">
-      {elements.length === 0 ? (
-        <div className="text-center py-8 text-sm text-gray-500 rounded-2xl border border-slate-100 bg-white/80">
-          아직 배경에 놓인 이미지가 없어요
-        </div>
-      ) : (
+    <div className="flex h-full flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 p-1">
+        {elements.length === 0 ? (
+          <div className="text-center py-8 text-sm text-gray-500 rounded-2xl border border-slate-100 bg-white/80">
+            아직 배경에 놓인 이미지가 없어요
+          </div>
+        ) : (
         elements
           .slice()
           .sort((a, b) => b.zIndex - a.zIndex)
@@ -312,83 +313,92 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
             </div>
           ))
       )}
+      </div>
     </div>
   );
 
   const renderSettingsTab = () => (
-    <div className="flex-1 space-y-4 overflow-y-auto pr-1">
-      <section className="rounded-2xl border border-white/70 bg-white/85 p-4 space-y-3">
-        <p className="text-sm font-semibold text-slate-700">
-          배경 색상
-        </p>
-        <div className="grid grid-cols-4 gap-3">
-          {COLOR_PRESETS.map((color) => (
-            <button
-              key={color}
-              className={`h-10 rounded-xl border-2 transition-all duration-200 ${backgroundColor === color ? 'border-emerald-500 scale-105 shadow-md shadow-emerald-200/40' : 'border-transparent hover:border-slate-200'}`}
-              style={{ backgroundColor: color }}
-              onClick={() => onSettingsChange({ backgroundColor: color })}
-              title={color}
-            />
-          ))}
-        </div>
-      </section>
+    <div className="flex h-full flex-col">
+      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pr-1">
+        <section className="rounded-2xl border border-white/70 bg-white/85 p-4 space-y-3">
+          <p className="text-sm font-semibold text-slate-700">배경 색상</p>
+          <div className="grid grid-cols-4 gap-3">
+            {COLOR_PRESETS.map((color) => (
+              <button
+                key={color}
+                className={`h-10 rounded-xl border-2 transition-all duration-200 ${
+                  backgroundColor === color
+                    ? 'border-emerald-500 scale-105 shadow-md shadow-emerald-200/40'
+                    : 'border-transparent hover:border-slate-200'
+                }`}
+                style={{ backgroundColor: color }}
+                onClick={() => onSettingsChange({ backgroundColor: color })}
+                title={color}
+              />
+            ))}
+          </div>
+        </section>
 
-      <section className="rounded-2xl border border-white/70 bg-white/85 p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">그리드 표시</span>
-          <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
+        <section className="rounded-2xl border border-white/70 bg-white/85 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-slate-700">
+              그리드 표시
+            </span>
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
+              <input
+                type="checkbox"
+                checked={showGrid}
+                onChange={(e) =>
+                  onSettingsChange({ showGrid: e.target.checked })
+                }
+                className="accent-emerald-500"
+              />
+            </label>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">
+              그리드 간격 ({gridSize}px)
+            </label>
+            <input
+              type="range"
+              min={10}
+              max={80}
+              step={5}
+              value={gridSize}
+              onChange={(e) =>
+                onSettingsChange({ gridSize: Number(e.target.value) })
+              }
+              className="w-full accent-sky-500"
+            />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/70 bg-white/85 p-4 space-y-3">
+          <label className="flex items-center justify-between text-sm text-slate-700 font-semibold">
+            스냅
             <input
               type="checkbox"
-              checked={showGrid}
-              onChange={(e) => onSettingsChange({ showGrid: e.target.checked })}
+              checked={editorOptions.snapToGrid}
+              onChange={(e) =>
+                onEditorOptionsChange({ snapToGrid: e.target.checked })
+              }
               className="accent-emerald-500"
             />
           </label>
-        </div>
-        <div>
-          <label className="block text-xs text-slate-500 mb-1">
-            그리드 간격 ({gridSize}px)
+
+          <label className="flex items-center justify-between text-sm text-slate-700 font-semibold">
+            비율 잠금
+            <input
+              type="checkbox"
+              checked={editorOptions.lockAspectRatio}
+              onChange={(e) =>
+                onEditorOptionsChange({ lockAspectRatio: e.target.checked })
+              }
+              className="accent-sky-500"
+            />
           </label>
-          <input
-            type="range"
-            min={10}
-            max={80}
-            step={5}
-            value={gridSize}
-            onChange={(e) =>
-              onSettingsChange({ gridSize: Number(e.target.value) })
-            }
-            className="w-full accent-sky-500"
-          />
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-white/70 bg-white/85 p-4 space-y-3">
-        <label className="flex items-center justify-between text-sm text-slate-700 font-semibold">
-          스냅
-          <input
-            type="checkbox"
-            checked={editorOptions.snapToGrid}
-            onChange={(e) =>
-              onEditorOptionsChange({ snapToGrid: e.target.checked })
-            }
-            className="accent-emerald-500"
-          />
-        </label>
-
-        <label className="flex items-center justify-between text-sm text-slate-700 font-semibold">
-          비율 잠금
-          <input
-            type="checkbox"
-            checked={editorOptions.lockAspectRatio}
-            onChange={(e) =>
-              onEditorOptionsChange({ lockAspectRatio: e.target.checked })
-            }
-            className="accent-sky-500"
-          />
-        </label>
-      </section>
+        </section>
+      </div>
     </div>
   );
 
@@ -399,8 +409,8 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
   ] as const;
 
   return (
-    <div className="h-full rounded-[32px] border border-white/70 bg-white/85 px-5 py-6 backdrop-blur flex flex-col gap-5 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)]">
-      <div className="grid grid-cols-3 gap-2">
+    <div className="h-full overflow-hidden rounded-[32px] border border-white/70 bg-white/85 px-5 py-6 backdrop-blur flex flex-col gap-5 shadow-[0_35px_80px_-40px_rgba(15,23,42,0.45)]">
+      <div className="grid grid-cols-3 gap-2 shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -416,10 +426,11 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
           </button>
         ))}
       </div>
-
-      {activeTab === 'library' && renderLibraryTab()}
-      {activeTab === 'layers' && renderLayersTab()}
-      {activeTab === 'settings' && renderSettingsTab()}
+      <div className="flex-1 min-h-0">
+        {activeTab === 'library' && renderLibraryTab()}
+        {activeTab === 'layers' && renderLayersTab()}
+        {activeTab === 'settings' && renderSettingsTab()}
+      </div>
     </div>
   );
 };

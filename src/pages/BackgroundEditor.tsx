@@ -322,7 +322,7 @@ export const BackgroundEditor: FC = () => {
           />
         </div>
 
-        <div className="rounded-[40px] bg-white/70 backdrop-blur border border-white/60 h-[75vh] mt-20 p-6 relative overflow-hidden">
+        <div className="rounded-[40px] bg-white/70 backdrop-blur border border-white/60 h-[80vh] mt-20 p-6 relative overflow-hidden">
           <BackgroundCanvas
             config={draftConfig}
             editable
@@ -347,7 +347,7 @@ export const BackgroundEditor: FC = () => {
         </motion.div>
       </div>
 
-      <div className="w-full lg:w-96">
+      <div className="w-full lg:w-96 h-[90vh] lg:h-[90vh]">
         <ImageLibrary
           uploadedImages={draftConfig.uploadedImages}
           elements={draftConfig.images}
