@@ -74,7 +74,6 @@ export const WritePage: FC = () => {
   const { createPost } = usePosts();
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [anonName, setAnonName] = useState('익명의 고양이');
   const manualAuthorRef = useRef('');
   const uploadAltText = (file: File) =>
     file.name.replace(/\.[^/.]+$/, '') || '이미지 설명';
@@ -149,7 +148,6 @@ export const WritePage: FC = () => {
     if (checked) {
       const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
       const name = `익명의 ${randomAnimal}`;
-      setAnonName(name);
       setValue('author', name, { shouldDirty: true });
     } else {
       setValue('author', manualAuthorRef.current || '', { shouldDirty: true });
@@ -159,7 +157,6 @@ export const WritePage: FC = () => {
   const rerollAnonymous = () => {
     const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
     const name = `익명의 ${randomAnimal}`;
-    setAnonName(name);
     setValue('author', name, { shouldDirty: true });
   };
 
