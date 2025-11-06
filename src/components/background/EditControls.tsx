@@ -1,4 +1,4 @@
-import { Save, Trash2 } from 'lucide-react';
+import { Save } from 'lucide-react';
 import type { FC } from 'react';
 import { Button } from '../common/Button';
 
@@ -27,9 +27,8 @@ export const EditControls: FC<EditControlsProps> = ({
       <div className="w-px h-6 bg-gray-300" /> */}
       <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
         <span
-          className={`text-xs font-semibold ${
-            hasUnsavedChanges ? 'text-rose-500' : 'text-emerald-500'
-          }`}
+          className={`text-xs font-semibold ${hasUnsavedChanges ? 'text-rose-500' : 'text-emerald-500'
+            }`}
         >
           {hasUnsavedChanges ? '저장 필요' : '모든 변경사항 저장됨'}
         </span>
