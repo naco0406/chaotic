@@ -117,7 +117,7 @@ export const WritePage: FC = () => {
 
   useUnsavedChangesPrompt(
     isDirty && !isSubmitting,
-    '작성 중인 편지가 저장되지 않았어요. 페이지를 떠나시겠어요?'
+    '작성 중인 글이 저장되지 않았어요. 페이지를 떠나시겠어요?'
   );
 
   const previewPost: Post = useMemo(
@@ -183,7 +183,7 @@ export const WritePage: FC = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="max-w-6xl mx-auto space-y-6"
       >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-row gap-4 items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               type="button"
@@ -209,16 +209,18 @@ export const WritePage: FC = () => {
           >
             <div className="flex flex-col gap-4 flex-1 min-h-0">
               <div className="flex flex-col gap-2">
-                <label className="text-xs uppercase tracking-wide text-slate-400">
+                {/* <label className="text-xs uppercase tracking-wide text-slate-400">
                   작성자
-                </label>
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                </label> */}
+                <div className="flex flex-col gap-3">
                   <input
-                    {...register('author', { required: '누가 보낸 편지인지 알려주세요' })}
-                    placeholder="당신의 이름이나 닉네임"
+                    {...register('author', { required: '누가 작성한 글인지 알려주세요' })}
+                    placeholder="작성자"
                     className="flex-1 text-lg bg-white border-2 border-cyan-200 focus:border-cyan-400 rounded-2xl px-4 py-3 outline-none text-slate-800 placeholder-slate-300 disabled:bg-slate-50"
                     disabled={isAnonymous}
                   />
+                </div>
+                <div className="flex flex-row gap-2">
                   <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                     <input
                       type="checkbox"
@@ -245,11 +247,11 @@ export const WritePage: FC = () => {
                     {errors.author.message}
                   </p>
                 )}
-                {isAnonymous && (
+                {/* {isAnonymous && (
                   <p className="text-xs text-emerald-500">
                     현재 이름: {anonName}
                   </p>
-                )}
+                )} */}
               </div>
 
               <MarkdownToolbar

@@ -47,13 +47,15 @@ export const HomePage: FC = () => {
       icon: Palette,
       bg: 'from-lime-300 via-emerald-300 to-sky-300',
       expandedWidth: 184,
+      hideOnMobile: true,
     },
     {
       to: '/write',
-      label: '편지 쓰기',
+      label: '글 쓰기',
       icon: Edit,
       bg: 'from-pink-200 via-rose-200 to-orange-200',
       expandedWidth: 176,
+      hideOnMobile: false,
     },
   ] as const;
 
@@ -89,7 +91,7 @@ export const HomePage: FC = () => {
         <section className="max-w-6xl mx-auto">
           {isPostsLoading ? (
             <div className="rounded-[32px] bg-white/70 backdrop-blur p-10 text-center text-emerald-600 cute-shadow animate-pulse">
-              편지를 불러오는 중이에요...
+            글을 불러오는 중이에요...
             </div>
           ) : (
             <PostGrid posts={posts} />
@@ -98,12 +100,12 @@ export const HomePage: FC = () => {
       </motion.div>
 
       <div className="fixed bottom-8 right-8 z-20 flex flex-col items-end gap-4">
-        {actions.map(({ to, label, icon: Icon, bg, expandedWidth }) => (
+        {actions.map(({ to, label, icon: Icon, bg, expandedWidth, hideOnMobile }) => (
           <MotionLink
             key={label}
             to={to}
             aria-label={label}
-            className={`group grid h-14 items-stretch overflow-hidden rounded-full border border-white/60 bg-gradient-to-r ${bg} backdrop-blur-[18px]`}
+            className={`group ${hideOnMobile ? 'hidden md:grid' : 'grid'} h-14 items-stretch overflow-hidden rounded-full border border-white/60 bg-gradient-to-r ${bg} backdrop-blur-[18px]`}
             style={{
               transformOrigin: 'right center',
               gridTemplateColumns: 'minmax(0, 1fr) 56px',

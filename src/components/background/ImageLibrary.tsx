@@ -149,7 +149,7 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-3 p-1">
         {uploadedImages.length === 0 ? (
           <div className="text-center py-10 rounded-2xl border border-slate-100 bg-white/80">
             <ImageIcon size={48} className="mx-auto mb-2 text-slate-300" />
@@ -164,7 +164,6 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
               key={index}
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
               className="group w-full rounded-2xl border border-transparent ring-1 ring-slate-100 ring-offset-1 ring-offset-white bg-white/80 transition-all duration-200 hover:ring-emerald-200 hover:ring-offset-2"
               onClick={() => onImageSelect(imageUrl)}
@@ -187,7 +186,7 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
     <div className="flex-1 overflow-y-auto space-y-3 pr-1">
       {elements.length === 0 ? (
         <div className="text-center py-8 text-sm text-gray-500 rounded-2xl border border-slate-100 bg-white/80">
-          아직 편지 배경에 놓인 장식이 없어요
+          아직 배경에 놓인 이미지가 없어요
         </div>
       ) : (
         elements
