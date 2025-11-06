@@ -16,6 +16,7 @@ import { useUnsavedChangesPrompt } from '../hooks/useUnsavedChangesPrompt';
 import { usePosts } from '../hooks/usePosts';
 import { storage } from '../lib/firebase';
 import type { Post } from '../types/post';
+import { createUploadPlaceholder } from '../utils/uploadPlaceholder';
 
 interface FormData {
   author: string;
@@ -81,12 +82,23 @@ export const WritePage: FC = () => {
   const handleEditorImageUpload = async (file: File) => uploadPostImage(file);
 
   const handleToolbarImageUpload = async (file: File) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const placeholder = createUploadPlaceholder(file.name);
+    editor.insertText('', '', placeholder.markdown);
+
     try {
       const downloadUrl = await uploadPostImage(file);
-      editorRef.current?.insertText('![', `](${downloadUrl})`, uploadAltText(file));
+      editor.replaceText(
+        placeholder.markdown,
+        `![${uploadAltText(file)}](${downloadUrl})`
+      );
     } catch (error) {
       console.error(error);
-      alert(getUploadErrorMessage(error));
+      const message = getUploadErrorMessage(error);
+      editor.replaceText(placeholder.markdown, `> ⚠️ ${message}`);
+      alert(message);
     }
   };
 
@@ -247,11 +259,11 @@ export const WritePage: FC = () => {
                     {errors.author.message}
                   </p>
                 )}
-                {/* {isAnonymous && (
+                {isAnonymous && (
                   <p className="text-xs text-emerald-500">
                     현재 이름: {anonName}
                   </p>
-                )} */}
+                )}
               </div>
 
               <MarkdownToolbar

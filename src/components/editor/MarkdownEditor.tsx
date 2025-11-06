@@ -5,6 +5,7 @@ import {
   type ClipboardEvent,
   type DragEvent,
 } from 'react';
+import { createUploadPlaceholder } from '../../utils/uploadPlaceholder';
 
 interface MarkdownEditorProps {
   value: string;
@@ -15,6 +16,7 @@ interface MarkdownEditorProps {
 
 export interface MarkdownEditorHandle {
   insertText: (before: string, after?: string, placeholder?: string) => void;
+  replaceText: (target: string, replacement: string) => void;
 }
 
 export const MarkdownEditor = forwardRef<
@@ -52,8 +54,42 @@ export const MarkdownEditor = forwardRef<
     }, 0);
   };
 
+  const replaceText = (target: string, replacement: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea || !target) return;
+
+    const currentValue = textarea.value;
+    const index = currentValue.indexOf(target);
+
+    if (index === -1) {
+      if (!replacement) {
+        return;
+      }
+      const needsNewline =
+        currentValue.length > 0 && !currentValue.endsWith('\n');
+      onChange(
+        `${currentValue}${needsNewline ? '\n' : ''}${replacement}`
+      );
+      return;
+    }
+
+    const nextValue =
+      currentValue.substring(0, index) +
+      replacement +
+      currentValue.substring(index + target.length);
+
+    onChange(nextValue);
+
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = index + replacement.length;
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
+  };
+
   useImperativeHandle(ref, () => ({
     insertText,
+    replaceText,
   }));
 
   const handleUploadedFiles = async (files: File[]) => {
@@ -62,17 +98,26 @@ export const MarkdownEditor = forwardRef<
     }
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
+      const placeholder = createUploadPlaceholder(file.name);
+      insertText('', '', placeholder.markdown);
       try {
         const downloadUrl = await onImageUpload(file);
-        if (!downloadUrl) continue;
+        if (!downloadUrl) {
+          replaceText(placeholder.markdown, '');
+          continue;
+        }
         const altText = file.name.replace(/\.[^/.]+$/, '') || '이미지 설명';
-        insertText('![', `](${downloadUrl})`, altText);
+        replaceText(
+          placeholder.markdown,
+          `![${altText}](${downloadUrl})`
+        );
       } catch (error) {
         console.error(error);
         const message =
           error instanceof Error
             ? error.message
             : '이미지 업로드에 실패했어요. 다시 시도해주세요.';
+        replaceText(placeholder.markdown, `> ⚠️ ${message}`);
         alert(message);
       }
     }

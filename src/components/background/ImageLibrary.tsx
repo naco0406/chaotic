@@ -114,76 +114,107 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
     e.preventDefault();
   };
 
-  const renderLibraryTab = () => (
-    <>
-      <div
-        className="relative mb-4 overflow-hidden rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] cursor-pointer transition-colors hover:border-emerald-300"
-        onClick={() => fileInputRef.current?.click()}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
-        <Upload size={32} className="mx-auto mb-2 text-sky-400" />
-        <p className="text-sm font-semibold text-slate-700">
-          클릭하거나 이미지를 드래그해 올려주세요
+  const renderLibraryTab = () => {
+    const skeletonCount = uploadedImages.length === 0 ? 3 : 1;
+    const renderUploadSkeletons = () => (
+      <div className="space-y-3" aria-live="polite">
+        <p className="text-xs font-semibold text-emerald-500 px-1">
+          이미지 업로드 중이에요...
         </p>
-        <p className="text-xs text-slate-400">
-          PNG, JPG, GIF 지원 · 최대 10MB
-        </p>
-        {isUploading && (
-          <p className="text-xs text-emerald-500 mt-2">
-            사진을 업로드하는 중이에요...
-          </p>
-        )}
-        {uploadError && (
-          <p className="text-xs text-rose-500 mt-2">
-            {uploadError}
-          </p>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleFileUpload}
-          className="hidden"
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-3 p-1">
-        {uploadedImages.length === 0 ? (
-          <div className="text-center py-10 rounded-2xl border border-slate-100 bg-white/80">
-            <ImageIcon size={48} className="mx-auto mb-2 text-slate-300" />
-            <p className="text-sm text-slate-500">
-              아직 앨범이 비어 있어요. 사진이나 스티커를 올려주세요!
-            </p>
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <div
+            key={`upload-skeleton-${index}`}
+            className="rounded-2xl border border-transparent ring-1 ring-slate-100 ring-offset-1 ring-offset-white bg-white/80 p-3 animate-pulse"
+          >
+            <div className="aspect-[4/3] rounded-[18px] bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100" />
+            <div className="mt-3 space-y-2">
+              <div className="h-3 w-24 rounded-full bg-slate-200/80" />
+              <div className="h-3 w-16 rounded-full bg-slate-100/70" />
+            </div>
           </div>
-        ) : (
-          uploadedImages.map((imageUrl, index) => (
-            <motion.button
-              type="button"
-              key={index}
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileTap={{ scale: 0.98 }}
-              className="group w-full rounded-2xl border border-transparent ring-1 ring-slate-100 ring-offset-1 ring-offset-white bg-white/80 transition-all duration-200 hover:ring-emerald-200 hover:ring-offset-2"
-              onClick={() => onImageSelect(imageUrl)}
-            >
-              <div className="aspect-[4/3] overflow-hidden rounded-[18px] bg-slate-50">
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-            </motion.button>
-          ))
-        )}
+        ))}
       </div>
-    </>
-  );
+    );
+
+    return (
+      <>
+        <div
+          className="relative mb-4 overflow-hidden rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-white via-sky-50 to-emerald-50 p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] cursor-pointer transition-colors hover:border-emerald-300"
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          <Upload size={32} className="mx-auto mb-2 text-sky-400" />
+          <p className="text-sm font-semibold text-slate-700">
+            클릭하거나 이미지를 드래그해 올려주세요
+          </p>
+          <p className="text-xs text-slate-400">
+            PNG, JPG, GIF 지원 · 최대 10MB
+          </p>
+          {isUploading && (
+            <div className="mt-3 flex flex-col items-center text-xs font-semibold text-emerald-500">
+              <div className="h-1.5 w-20 rounded-full bg-emerald-100 animate-pulse" />
+              <span className="mt-1">이미지를 업로드 중이에요...</span>
+            </div>
+          )}
+          {uploadError && (
+            <p className="text-xs text-rose-500 mt-2">
+              {uploadError}
+            </p>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-3 p-1">
+          {uploadedImages.length === 0 ? (
+            isUploading ? (
+              renderUploadSkeletons()
+            ) : (
+              <div className="text-center py-10 rounded-2xl border border-slate-100 bg-white/80">
+                <ImageIcon size={48} className="mx-auto mb-2 text-slate-300" />
+                <p className="text-sm text-slate-500">
+                  아직 앨범이 비어 있어요. 사진이나 스티커를 올려주세요!
+                </p>
+              </div>
+            )
+          ) : (
+            <>
+              {isUploading && renderUploadSkeletons()}
+              {uploadedImages.map((imageUrl, index) => (
+                <motion.button
+                  type="button"
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.94 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group w-full rounded-2xl border border-transparent ring-1 ring-slate-100 ring-offset-1 ring-offset-white bg-white/80 transition-all duration-200 hover:ring-emerald-200 hover:ring-offset-2"
+                  onClick={() => onImageSelect(imageUrl)}
+                >
+                  <div className="aspect-[4/3] overflow-hidden rounded-[18px] bg-slate-50">
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                </motion.button>
+              ))}
+            </>
+          )}
+        </div>
+      </>
+    );
+  };
 
   const renderLayersTab = () => (
-    <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+    <div className="flex-1 overflow-y-auto space-y-3 p-1">
       {elements.length === 0 ? (
         <div className="text-center py-8 text-sm text-gray-500 rounded-2xl border border-slate-100 bg-white/80">
           아직 배경에 놓인 이미지가 없어요

@@ -89,7 +89,7 @@ const BackgroundCanvasComponent: FC<BackgroundCanvasProps> = ({
         {config.images.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-500 pointer-events-none">
             <p className="text-lg font-semibold mb-2">
-              편지를 환하게 만들 장식을 올려보세요 ✨
+              이미지를 올려보세요 ✨
             </p>
             <p className="text-sm text-emerald-400">
               앨범에서 이미지를 고르고 드래그로 위치를 맞출 수 있어요

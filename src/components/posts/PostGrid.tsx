@@ -17,10 +17,7 @@ const PostGridComponent: FC<PostGridProps> = ({ posts }) => {
         className="text-center py-16"
       >
         <p className="text-xl text-emerald-600 font-semibold">
-          아직 편지가 도착하지 않았어요 💌
-        </p>
-        <p className="text-gray-500 mt-2">
-          마음속 이야기를 가장 먼저 전해보세요.
+          아직 작성된 글이 없습니다
         </p>
       </motion.div>
     );
