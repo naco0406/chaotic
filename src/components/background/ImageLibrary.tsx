@@ -205,7 +205,7 @@ export const ImageLibrary: FC<ImageLibraryProps> = ({
                   onLayerSelect(element.id);
                 }
               }}
-              className={`group rounded-2xl border border-transparent ring-1 ring-slate-100 ring-offset-1 ring-offset-white bg-white/90 p-3 flex items-center gap-3 transition-all hover:-translate-y-0.5 hover:ring-emerald-200 ${
+              className={`group rounded-2xl border border-transparent ring-1 ring-slate-100 ring-offset-1 ring-offset-white bg-white/80 p-3 flex items-center gap-3 transition-all hover:-translate-y-0.5 hover:ring-emerald-200 ${
                 selectedId === element.id
                   ? 'ring-emerald-300 ring-offset-2 shadow-[0_18px_45px_-30px_rgba(16,185,129,0.9)]'
                   : ''

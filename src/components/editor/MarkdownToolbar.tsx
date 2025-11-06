@@ -11,14 +11,42 @@ import {
   ListOrdered,
   Quote,
 } from 'lucide-react';
-import type { FC } from 'react';
-import { Button } from '../common/Button';
+import { useRef, type ChangeEvent, type FC } from 'react';
 
 interface MarkdownToolbarProps {
   onInsert: (before: string, after?: string, placeholder?: string) => void;
+  onImageUpload?: (file: File) => Promise<void> | void;
 }
 
-export const MarkdownToolbar: FC<MarkdownToolbarProps> = ({ onInsert }) => {
+export const MarkdownToolbar: FC<MarkdownToolbarProps> = ({
+  onInsert,
+  onImageUpload,
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageButton = () => {
+    if (!onImageUpload) {
+      onInsert('![', '](url)', '이미지 설명');
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!onImageUpload) return;
+    const files = Array.from(event.target.files ?? []).filter((file) =>
+      file.type.startsWith('image/')
+    );
+    for (const file of files) {
+      try {
+        await onImageUpload(file);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    event.target.value = '';
+  };
+
   const tools = [
     {
       icon: Bold,
@@ -53,7 +81,7 @@ export const MarkdownToolbar: FC<MarkdownToolbarProps> = ({ onInsert }) => {
     {
       icon: Image,
       title: '이미지',
-      action: () => onInsert('![', '](url)', '이미지 설명'),
+      action: handleImageButton,
     },
     { icon: Code, title: '코드', action: () => onInsert('`', '`', '코드') },
     {
@@ -74,17 +102,27 @@ export const MarkdownToolbar: FC<MarkdownToolbarProps> = ({ onInsert }) => {
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-2 cute-shadow flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1">
       {tools.map((tool) => (
-        <Button
+        <button
           key={tool.title}
-          size="sm"
-          variant="ghost"
-          icon={tool.icon}
+          type="button"
           onClick={tool.action}
           title={tool.title}
-        />
+          aria-label={tool.title}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 transition-colors"
+        >
+          <tool.icon size={18} />
+        </button>
       ))}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </div>
   );
 };

@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { ArrowLeft, RefreshCcw, Save } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import { useEffect, useMemo, useRef, useState, type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -10,9 +12,9 @@ import {
 } from '../components/editor/MarkdownEditor';
 import { MarkdownToolbar } from '../components/editor/MarkdownToolbar';
 import { PostViewer } from '../components/posts/PostViewer';
-import { useDraftAutosave } from '../hooks/useDraftAutosave';
 import { useUnsavedChangesPrompt } from '../hooks/useUnsavedChangesPrompt';
-import { useDraft, usePosts } from '../hooks/usePosts';
+import { usePosts } from '../hooks/usePosts';
+import { storage } from '../lib/firebase';
 import type { Post } from '../types/post';
 
 interface FormData {
@@ -43,15 +45,50 @@ const deriveTitle = (content: string): string => {
   return sanitized.length > 40 ? `${sanitized.slice(0, 40)}…` : sanitized || fallback;
 };
 
+const createEditorImagePath = (fileName: string) => {
+  const extension = fileName.split('.').pop();
+  const cleanedExt = extension?.replace(/[^a-zA-Z0-9]/g, '') ?? '';
+  const safeExt = cleanedExt ? `.${cleanedExt}` : '';
+  return `background-images/post-${nanoid()}-${Date.now()}${safeExt}`;
+};
+
+const uploadPostImage = async (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('이미지 파일만 업로드할 수 있어요.');
+  }
+  const storageRef = ref(storage, createEditorImagePath(file.name));
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+};
+
+const getUploadErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return '이미지 업로드에 실패했어요. 다시 시도해주세요.';
+};
+
 export const WritePage: FC = () => {
   const navigate = useNavigate();
   const { createPost } = usePosts();
-  const { draft, saveDraft, clearDraft } = useDraft();
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [anonName, setAnonName] = useState('익명의 고양이');
   const manualAuthorRef = useRef('');
-  const draftAppliedRef = useRef(false);
+  const uploadAltText = (file: File) =>
+    file.name.replace(/\.[^/.]+$/, '') || '이미지 설명';
+
+  const handleEditorImageUpload = async (file: File) => uploadPostImage(file);
+
+  const handleToolbarImageUpload = async (file: File) => {
+    try {
+      const downloadUrl = await uploadPostImage(file);
+      editorRef.current?.insertText('![', `](${downloadUrl})`, uploadAltText(file));
+    } catch (error) {
+      console.error(error);
+      alert(getUploadErrorMessage(error));
+    }
+  };
 
   const {
     register,
@@ -67,20 +104,6 @@ export const WritePage: FC = () => {
     },
   });
 
-  useEffect(() => {
-    if (draftAppliedRef.current) return;
-
-    if (draft) {
-      reset({
-        author: draft.author || '',
-        content: draft.content || '',
-      });
-      manualAuthorRef.current = draft.author || '';
-    }
-
-    draftAppliedRef.current = true;
-  }, [draft, reset]);
-
   const author = watch('author');
   const content = watch('content');
 
@@ -92,10 +115,6 @@ export const WritePage: FC = () => {
 
   const computedTitle = useMemo(() => deriveTitle(content), [content]);
 
-  useDraftAutosave(
-    { title: computedTitle, author, content },
-    saveDraft
-  );
   useUnsavedChangesPrompt(
     isDirty && !isSubmitting,
     '작성 중인 편지가 저장되지 않았어요. 페이지를 떠나시겠어요?'
@@ -138,7 +157,6 @@ export const WritePage: FC = () => {
       author: data.author || '이름 없는 친구',
       content: data.content,
     });
-    void clearDraft();
     manualAuthorRef.current = '';
     reset({
       author: '',
@@ -154,16 +172,6 @@ export const WritePage: FC = () => {
   ) => {
     editorRef.current?.insertText(before, after, placeholder);
   };
-
-  const wordCount = content
-    ? content.trim().split(/\s+/).filter(Boolean).length
-    : 0;
-  const lastSavedLabel = draft?.savedAt
-    ? `자동 저장 ${new Date(draft.savedAt).toLocaleTimeString('ko-KR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`
-    : '자동 저장 대기 중';
 
   return (
     <motion.div
@@ -185,117 +193,106 @@ export const WritePage: FC = () => {
             >
               목록으로
             </Button>
-            <div className="bg-white rounded-full px-4 py-1 text-sm text-emerald-600 cute-shadow">
-              {lastSavedLabel}
-            </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex gap-3">
-              <div className="bg-white rounded-2xl px-4 py-2 text-center">
-                <p className="text-xs text-slate-400">글자 수</p>
-                <p className="text-lg font-semibold text-teal-700">
-                  {content.length}
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl px-4 py-2 text-center">
-                <p className="text-xs text-slate-400">단어 수</p>
-                <p className="text-lg font-semibold text-amber-600">
-                  {wordCount}
-                </p>
-              </div>
-            </div>
             <Button type="submit" icon={Save}>
               저장하기
             </Button>
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 backdrop-blur rounded-3xl p-6 cute-shadow space-y-4"
-        >
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-xs uppercase tracking-wide text-slate-400">
-                작성자
-              </label>
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <input
-                  {...register('author', { required: '누가 보낸 편지인지 알려주세요' })}
-                  placeholder="당신의 이름이나 닉네임"
-                  className="flex-1 text-lg bg-white border-2 border-cyan-200 focus:border-cyan-400 rounded-2xl px-4 py-3 outline-none text-slate-800 placeholder-slate-300 disabled:bg-slate-50"
-                  disabled={isAnonymous}
-                />
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={(e) => handleAnonymousToggle(e.target.checked)}
-                    className="accent-emerald-500"
-                  />
-                  익명으로 작성하기
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/80 backdrop-blur rounded-3xl p-6 cute-shadow flex flex-col min-h-[65vh] lg:h-[70vh]"
+          >
+            <div className="flex flex-col gap-4 flex-1 min-h-0">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs uppercase tracking-wide text-slate-400">
+                  작성자
                 </label>
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                  <input
+                    {...register('author', { required: '누가 보낸 편지인지 알려주세요' })}
+                    placeholder="당신의 이름이나 닉네임"
+                    className="flex-1 text-lg bg-white border-2 border-cyan-200 focus:border-cyan-400 rounded-2xl px-4 py-3 outline-none text-slate-800 placeholder-slate-300 disabled:bg-slate-50"
+                    disabled={isAnonymous}
+                  />
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={isAnonymous}
+                      onChange={(e) => handleAnonymousToggle(e.target.checked)}
+                      className="accent-emerald-500"
+                    />
+                    익명으로 작성하기
+                  </label>
+                  {isAnonymous && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      icon={RefreshCcw}
+                      onClick={rerollAnonymous}
+                    >
+                      다른 이름
+                    </Button>
+                  )}
+                </div>
+                {errors.author && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.author.message}
+                  </p>
+                )}
                 {isAnonymous && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    icon={RefreshCcw}
-                    onClick={rerollAnonymous}
-                  >
-                    다른 이름
-                  </Button>
+                  <p className="text-xs text-emerald-500">
+                    현재 이름: {anonName}
+                  </p>
                 )}
               </div>
-              {errors.author && (
-                <p className="text-sm text-red-500 mt-1">
-                  {errors.author.message}
-                </p>
-              )}
-              {isAnonymous && (
-                <p className="text-xs text-emerald-500">
-                  현재 이름: {anonName}
-                </p>
-              )}
+
+              <MarkdownToolbar
+                onInsert={handleToolbarInsert}
+                onImageUpload={handleToolbarImageUpload}
+              />
+
+              <section className="flex flex-col flex-1 min-h-0">
+                {/* <h3 className="text-sm font-semibold text-emerald-500 mb-2">
+                  마음을 적어보세요
+                </h3> */}
+                <div className="flex-1 min-h-0">
+                  <MarkdownEditor
+                    ref={editorRef}
+                    value={content}
+                    onChange={(value) =>
+                      setValue('content', value, {
+                        shouldDirty: true,
+                        shouldTouch: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    placeholder="마크다운으로 여러분의 이야기를 들려주세요..."
+                    onImageUpload={handleEditorImageUpload}
+                  />
+                </div>
+              </section>
             </div>
+          </motion.div>
 
-            <MarkdownToolbar onInsert={handleToolbarInsert} />
-
-            <section className="bg-white rounded-3xl border border-slate-100 p-4 h-[55vh] flex flex-col">
-              <h3 className="text-sm font-semibold text-emerald-500 mb-2">
-                마음을 적어보세요
-              </h3>
-              <div className="flex-1">
-                <MarkdownEditor
-                  ref={editorRef}
-                  value={content}
-                  onChange={(value) =>
-                    setValue('content', value, {
-                      shouldDirty: true,
-                      shouldTouch: true,
-                      shouldValidate: true,
-                    })
-                  }
-                  placeholder="마크다운으로 여러분의 이야기를 들려주세요..."
-                />
-              </div>
-            </section>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/90 backdrop-blur rounded-3xl p-6 cute-shadow"
-        >
-          <h3 className="text-sm font-semibold text-sky-500 mb-3">
-            메인 페이지 미리보기
-          </h3>
-          <div className="max-h-[70vh] overflow-y-auto pr-2">
-            <PostViewer post={previewPost} />
-          </div>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/80 backdrop-blur rounded-3xl p-6 cute-shadow flex flex-col min-h-[45vh] lg:h-[70vh]"
+          >
+            {/* <h3 className="text-sm font-semibold text-sky-500 mb-3">
+              메인 페이지 미리보기
+            </h3> */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-2 ">
+              <PostViewer post={previewPost} />
+            </div>
+          </motion.div>
+        </div>
       </form>
     </motion.div>
   );

@@ -341,7 +341,7 @@ export const BackgroundEditor: FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: savedIndicator ? 1 : 0, y: savedIndicator ? 0 : 20 }}
-          className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 rounded-full px-6 py-2 text-sm font-semibold text-emerald-500 cute-shadow"
+          className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/80 rounded-full px-6 py-2 text-sm font-semibold text-emerald-500 cute-shadow"
         >
           저장되었습니다!
         </motion.div>

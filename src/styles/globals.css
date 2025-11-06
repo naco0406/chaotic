@@ -82,6 +82,17 @@
   }
 
   .markdown-body blockquote {
-    @apply border-l-4 border-emerald-200 pl-4 italic text-slate-600 bg-emerald-50/50 rounded-2xl py-3 px-4;
+    @apply relative pl-8 py-2 text-slate-600 italic leading-snug bg-transparent border-none rounded-none;
+  }
+
+  .markdown-body blockquote::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, #34d399, #22d3ee);
   }
 }
