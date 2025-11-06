@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FC,
 } from 'react';
@@ -44,19 +45,43 @@ export const BackgroundEditor: FC = () => {
     snapToGrid: true,
     lockAspectRatio: true,
   });
-
-  useEffect(() => {
-    if (isBackgroundLoading) return;
-    setDraftConfig(config);
-    setSelectedImageId(null);
-  }, [config, isBackgroundLoading]);
+  const [isDirty, setIsDirty] = useState(false);
+  const uploadQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const hasUnsavedChanges = useMemo(() => {
     return JSON.stringify(draftConfig) !== JSON.stringify(config);
   }, [draftConfig, config]);
+
   useUnsavedChangesPrompt(
     hasUnsavedChanges && !isSaving,
     '변경사항을 저장하지 않았어요. 이동하시겠어요?'
+  );
+
+  useEffect(() => {
+    if (!hasUnsavedChanges && isDirty) {
+      setIsDirty(false);
+    }
+  }, [hasUnsavedChanges, isDirty]);
+
+  useEffect(() => {
+    if (isBackgroundLoading || isDirty) return;
+    setDraftConfig(config);
+    setSelectedImageId(null);
+  }, [config, isBackgroundLoading, isDirty]);
+
+  const persistUploadedImage = useCallback(
+    async (downloadUrl: string) => {
+      const queue = uploadQueueRef.current.catch(() => undefined);
+      const persistPromise = queue.then(async () => {
+        await updateConfig((prev) => ({
+          ...prev,
+          uploadedImages: [...prev.uploadedImages, downloadUrl],
+        }));
+      });
+      uploadQueueRef.current = persistPromise;
+      await persistPromise;
+    },
+    [updateConfig]
   );
 
   const handleImageUpload = useCallback(async (file: File) => {
@@ -75,7 +100,24 @@ export const BackgroundEditor: FC = () => {
       ...prev,
       uploadedImages: [...prev.uploadedImages, downloadUrl],
     }));
-  }, []);
+    setIsDirty(true);
+    try {
+      await persistUploadedImage(downloadUrl);
+    } catch (error) {
+      setDraftConfig((prev) => {
+        const nextImages = [...prev.uploadedImages];
+        const index = nextImages.lastIndexOf(downloadUrl);
+        if (index !== -1) {
+          nextImages.splice(index, 1);
+        }
+        return {
+          ...prev,
+          uploadedImages: nextImages,
+        };
+      });
+      throw error;
+    }
+  }, [persistUploadedImage]);
 
   const handleImageSelect = (imageUrl: string) => {
     const newImage = createImageElement(imageUrl, draftConfig.images.length);
@@ -84,6 +126,7 @@ export const BackgroundEditor: FC = () => {
       images: [...prev.images, newImage],
     }));
     setSelectedImageId(newImage.id);
+    setIsDirty(true);
   };
 
   const updateImages = useCallback(
@@ -92,6 +135,7 @@ export const BackgroundEditor: FC = () => {
         ...prev,
         images: updater(prev.images),
       }));
+      setIsDirty(true);
     },
     []
   );
@@ -120,24 +164,29 @@ export const BackgroundEditor: FC = () => {
 
   const handleDuplicate = (id: string) => {
     let duplicatedId: string | null = null;
+    let duplicated = false;
     setDraftConfig((prev) => {
       const target = prev.images.find((image) => image.id === id);
       if (!target) {
         return prev;
       }
-      const duplicated: ImageElement = {
+      const duplicatedImage: ImageElement = {
         ...target,
         id: nanoid(),
         x: Math.min(95, target.x + 5),
         y: Math.min(95, target.y + 5),
         zIndex: prev.images.length,
       };
-      duplicatedId = duplicated.id;
+      duplicatedId = duplicatedImage.id;
+      duplicated = true;
       return {
         ...prev,
-        images: [...prev.images, duplicated],
+        images: [...prev.images, duplicatedImage],
       };
     });
+    if (duplicated) {
+      setIsDirty(true);
+    }
     if (duplicatedId) {
       setSelectedImageId(duplicatedId);
     }
@@ -171,11 +220,13 @@ export const BackgroundEditor: FC = () => {
       images: [],
     }));
     setSelectedImageId(null);
+    setIsDirty(true);
   };
 
   const handleReset = () => {
     setDraftConfig(config);
     setSelectedImageId(null);
+    setIsDirty(false);
   };
 
   const handleSave = useCallback(async () => {
@@ -183,6 +234,7 @@ export const BackgroundEditor: FC = () => {
     setIsSaving(true);
     try {
       await updateConfig(draftConfig);
+      setIsDirty(false);
       setSavedIndicator(true);
       setTimeout(() => setSavedIndicator(false), 1500);
     } catch (error) {
@@ -214,6 +266,18 @@ export const BackgroundEditor: FC = () => {
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [handleKeyboard]);
+
+  const handleSettingsChange = useCallback(
+    (settings: {
+      backgroundColor?: string;
+      showGrid?: boolean;
+      gridSize?: number;
+    }) => {
+      setDraftConfig((prev) => ({ ...prev, ...settings }));
+      setIsDirty(true);
+    },
+    []
+  );
 
   if (isBackgroundLoading) {
     return (
@@ -298,9 +362,7 @@ export const BackgroundEditor: FC = () => {
           onLayerDelete={handleImageDelete}
           onLayerDuplicate={handleDuplicate}
           onLayerReorder={handleLayerReorder}
-          onSettingsChange={(settings) =>
-            setDraftConfig((prev) => ({ ...prev, ...settings }))
-          }
+          onSettingsChange={handleSettingsChange}
           onEditorOptionsChange={(options) =>
             setEditorOptions((prev) => ({ ...prev, ...options }))
           }
