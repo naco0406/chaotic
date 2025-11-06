@@ -1,10 +1,11 @@
 import { memo } from 'react';
-import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
+import type { FC, HTMLAttributes, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
+import React from 'react';
 import type { Post } from '../../types/post';
 
 interface PostViewerProps {
@@ -18,10 +19,9 @@ interface CodeBlockProps extends HTMLAttributes<HTMLElement> {
   [key: string]: unknown;
 }
 
-type SyntaxTheme = Record<string, CSSProperties>;
-const syntaxTheme = oneDark as SyntaxTheme;
+const syntaxTheme = oneDark as unknown as { [key: string]: React.CSSProperties };
 
-const CodeBlock = ({ inline, className, children, style: _style, ...props }: CodeBlockProps) => {
+const CodeBlock = ({ inline, className, children, style, ...props }: CodeBlockProps) => {
   const match = /language-(\w+)/.exec(className || '');
   return !inline && match ? (
     <SyntaxHighlighter
@@ -36,6 +36,7 @@ const CodeBlock = ({ inline, className, children, style: _style, ...props }: Cod
   ) : (
       <code
         className="bg-emerald-100 px-1 py-0.5 rounded text-emerald-700"
+        style={style}
         {...props}
       >
         {children}

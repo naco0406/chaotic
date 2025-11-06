@@ -11,6 +11,7 @@ import {
 import { MarkdownToolbar } from '../components/editor/MarkdownToolbar';
 import { PostViewer } from '../components/posts/PostViewer';
 import { useDraftAutosave } from '../hooks/useDraftAutosave';
+import { useUnsavedChangesPrompt } from '../hooks/useUnsavedChangesPrompt';
 import { useDraft, usePosts } from '../hooks/usePosts';
 import type { Post } from '../types/post';
 
@@ -58,7 +59,7 @@ export const WritePage: FC = () => {
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<FormData>({
     defaultValues: {
       author: '',
@@ -94,6 +95,10 @@ export const WritePage: FC = () => {
   useDraftAutosave(
     { title: computedTitle, author, content },
     saveDraft
+  );
+  useUnsavedChangesPrompt(
+    isDirty && !isSubmitting,
+    '작성 중인 편지가 저장되지 않았어요. 페이지를 떠나시겠어요?'
   );
 
   const previewPost: Post = useMemo(
@@ -134,6 +139,11 @@ export const WritePage: FC = () => {
       content: data.content,
     });
     void clearDraft();
+    manualAuthorRef.current = '';
+    reset({
+      author: '',
+      content: '',
+    });
     navigate('/');
   };
 

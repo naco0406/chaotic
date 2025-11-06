@@ -15,7 +15,7 @@ import { EditControls } from '../components/background/EditControls';
 import { ImageLibrary } from '../components/background/ImageLibrary';
 import { Button } from '../components/common/Button';
 import { useBackground } from '../hooks/useBackground';
-import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useUnsavedChangesPrompt } from '../hooks/useUnsavedChangesPrompt';
 import { storage } from '../lib/firebase';
 import type { BackgroundConfig, ImageElement } from '../types/background';
 
@@ -36,17 +36,8 @@ const createImageElement = (
 export const BackgroundEditor: FC = () => {
   const navigate = useNavigate();
   const { config, updateConfig, isLoading: isBackgroundLoading } = useBackground();
-  const {
-    state: draftConfig,
-    setState: setDraftConfig,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    reset,
-  } = useUndoRedo<BackgroundConfig>(config);
+  const [draftConfig, setDraftConfig] = useState<BackgroundConfig>(config);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  const [isPreview, setIsPreview] = useState(false);
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editorOptions, setEditorOptions] = useState({
@@ -56,13 +47,17 @@ export const BackgroundEditor: FC = () => {
 
   useEffect(() => {
     if (isBackgroundLoading) return;
-    reset(config);
+    setDraftConfig(config);
     setSelectedImageId(null);
-  }, [config, isBackgroundLoading, reset]);
+  }, [config, isBackgroundLoading]);
 
   const hasUnsavedChanges = useMemo(() => {
     return JSON.stringify(draftConfig) !== JSON.stringify(config);
   }, [draftConfig, config]);
+  useUnsavedChangesPrompt(
+    hasUnsavedChanges && !isSaving,
+    '변경사항을 저장하지 않았어요. 이동하시겠어요?'
+  );
 
   const handleImageUpload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -80,7 +75,7 @@ export const BackgroundEditor: FC = () => {
       ...prev,
       uploadedImages: [...prev.uploadedImages, downloadUrl],
     }));
-  }, [setDraftConfig]);
+  }, []);
 
   const handleImageSelect = (imageUrl: string) => {
     const newImage = createImageElement(imageUrl, draftConfig.images.length);
@@ -89,17 +84,17 @@ export const BackgroundEditor: FC = () => {
       images: [...prev.images, newImage],
     }));
     setSelectedImageId(newImage.id);
-    setIsPreview(false);
   };
 
-  const updateImages = (
-    updater: (images: ImageElement[]) => ImageElement[]
-  ) => {
-    setDraftConfig((prev) => ({
-      ...prev,
-      images: updater(prev.images),
-    }));
-  };
+  const updateImages = useCallback(
+    (updater: (images: ImageElement[]) => ImageElement[]) => {
+      setDraftConfig((prev) => ({
+        ...prev,
+        images: updater(prev.images),
+      }));
+    },
+    []
+  );
 
   const handleImageUpdate = (id: string, updates: Partial<ImageElement>) => {
     updateImages((images) =>
@@ -109,32 +104,43 @@ export const BackgroundEditor: FC = () => {
     );
   };
 
-  const handleImageDelete = (id: string) => {
-    updateImages((images) =>
-      images
-        .filter((image) => image.id !== id)
-        .map((image, index) => ({ ...image, zIndex: index }))
-    );
-    if (selectedImageId === id) {
-      setSelectedImageId(null);
-    }
-  };
+  const handleImageDelete = useCallback(
+    (id: string) => {
+      updateImages((images) =>
+        images
+          .filter((image) => image.id !== id)
+          .map((image, index) => ({ ...image, zIndex: index }))
+      );
+      if (selectedImageId === id) {
+        setSelectedImageId(null);
+      }
+    },
+    [selectedImageId, updateImages]
+  );
 
   const handleDuplicate = (id: string) => {
-    const target = draftConfig.images.find((image) => image.id === id);
-    if (!target) return;
-    const duplicated: ImageElement = {
-      ...target,
-      id: nanoid(),
-      x: Math.min(95, target.x + 5),
-      y: Math.min(95, target.y + 5),
-      zIndex: draftConfig.images.length,
-    };
-    setDraftConfig((prev) => ({
-      ...prev,
-      images: [...prev.images, duplicated],
-    }));
-    setSelectedImageId(duplicated.id);
+    let duplicatedId: string | null = null;
+    setDraftConfig((prev) => {
+      const target = prev.images.find((image) => image.id === id);
+      if (!target) {
+        return prev;
+      }
+      const duplicated: ImageElement = {
+        ...target,
+        id: nanoid(),
+        x: Math.min(95, target.x + 5),
+        y: Math.min(95, target.y + 5),
+        zIndex: prev.images.length,
+      };
+      duplicatedId = duplicated.id;
+      return {
+        ...prev,
+        images: [...prev.images, duplicated],
+      };
+    });
+    if (duplicatedId) {
+      setSelectedImageId(duplicatedId);
+    }
   };
 
   const handleLayerReorder = (
@@ -168,9 +174,8 @@ export const BackgroundEditor: FC = () => {
   };
 
   const handleReset = () => {
-    reset(config);
+    setDraftConfig(config);
     setSelectedImageId(null);
-    setIsPreview(false);
   };
 
   const handleSave = useCallback(async () => {
@@ -178,7 +183,6 @@ export const BackgroundEditor: FC = () => {
     setIsSaving(true);
     try {
       await updateConfig(draftConfig);
-      reset(draftConfig);
       setSavedIndicator(true);
       setTimeout(() => setSavedIndicator(false), 1500);
     } catch (error) {
@@ -186,7 +190,7 @@ export const BackgroundEditor: FC = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [draftConfig, hasUnsavedChanges, isSaving, reset, updateConfig]);
+  }, [draftConfig, hasUnsavedChanges, isSaving, updateConfig]);
 
   const handleKeyboard = useCallback(
     (event: KeyboardEvent) => {
@@ -202,17 +206,8 @@ export const BackgroundEditor: FC = () => {
         event.preventDefault();
         handleImageDelete(selectedImageId);
       }
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        if (event.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
-      }
     },
-    [redo, selectedImageId, undo]
+    [handleImageDelete, selectedImageId]
   );
 
   useEffect(() => {
@@ -250,27 +245,15 @@ export const BackgroundEditor: FC = () => {
           >
             돌아가기
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setIsPreview((prev) => !prev)}
-          >
-            {isPreview ? '편집으로 돌아가기' : '미리보기'}
-          </Button>
         </div>
 
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
           <EditControls
-            canUndo={canUndo}
-            canRedo={canRedo}
-            isPreview={isPreview}
             hasUnsavedChanges={hasUnsavedChanges}
-            onUndo={undo}
-            onRedo={redo}
             onClear={handleClear}
             onSave={() => {
               void handleSave();
             }}
-            onTogglePreview={() => setIsPreview((prev) => !prev)}
             onReset={handleReset}
           />
         </div>
@@ -278,7 +261,7 @@ export const BackgroundEditor: FC = () => {
         <div className="rounded-[40px] bg-white/70 backdrop-blur border border-white/60 h-[75vh] mt-20 p-6 relative overflow-hidden">
           <BackgroundCanvas
             config={draftConfig}
-            editable={!isPreview}
+            editable
             selectedId={selectedImageId}
             onSelectImage={setSelectedImageId}
             onUpdateImage={handleImageUpdate}
@@ -287,7 +270,7 @@ export const BackgroundEditor: FC = () => {
             snapToGrid={editorOptions.snapToGrid}
             gridSize={draftConfig.gridSize}
             lockAspectRatio={editorOptions.lockAspectRatio}
-            showGuides={!isPreview}
+            showGuides
           />
         </div>
 

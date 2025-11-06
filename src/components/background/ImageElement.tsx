@@ -227,38 +227,40 @@ const ImageElementComponent: FC<ImageElementProps> = ({
 
       {isSelected && editable && (
         <>
-          <div className="absolute -top-5 right-0 flex gap-1">
+          <div className="absolute -top-5 -right-5 flex flex-col gap-2">
             <button
-              className="bg-white text-sky-500 rounded-full p-1 shadow hover:bg-sky-50"
+              type="button"
+              className="rounded-full border border-white/80 bg-white/95 p-1.5 text-slate-600 shadow-[0_15px_35px_-20px_rgba(15,23,42,0.8)] transition-colors hover:text-emerald-500"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onDuplicate?.();
               }}
             >
-              <Copy size={14} />
+              <Copy size={16} />
             </button>
             <button
-              className="bg-rose-500 text-white rounded-full p-1 shadow hover:bg-rose-600"
+              type="button"
+              className="rounded-full border border-white/80 bg-white/95 p-1.5 text-rose-500 shadow-[0_15px_35px_-20px_rgba(225,29,72,0.8)] transition-colors hover:text-rose-600"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove?.();
               }}
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           </div>
 
           <div
-            className="absolute -bottom-3 -right-3 bg-cyan-500 text-white rounded-full p-1 cursor-nwse-resize"
+            className="absolute -bottom-4 -right-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-cyan-500 text-white shadow-lg shadow-cyan-500/30 cursor-nwse-resize"
             onPointerDown={handleResizeStart}
           >
             <Maximize2 size={16} />
           </div>
 
           <div
-            className="absolute -top-3 -left-3 bg-amber-400 text-white rounded-full p-1 cursor-grab"
+            className="absolute -top-4 -left-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-amber-400 text-white shadow-lg shadow-amber-400/30 cursor-grab"
             onPointerDown={handleRotateStart}
           >
             <RotateCw size={16} />
